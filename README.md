@@ -15,7 +15,7 @@ cd ~/dfir-tools
 ```
 
 | Target | Command | Description |
-|---|---|---|
+| ------ | ------- | ----------- |
 | SIFT | `make install-sift` | SIFT workstation via `cast` + additional tools |
 | REMnux | `make install-remnux` | REMnux malware analysis VM + additional tools |
 | DFIR | `make install-dfir` | SIFT base + REMnux as addon |
@@ -68,6 +68,6 @@ Copies `common/files/.bashrc`, `.vimrc`, and `.bash_aliases` to `~/`.
 
 ---
 
-# Thanks to
+## Thanks to
 
 - [reuteras/remnux-tools](https://github.com/reuteras/remnux-tools) – Most of the work in this repository is based on this project. I have adapted and customized it extensively to suit my workflow, preferences, and additional tools.
