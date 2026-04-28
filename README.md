@@ -29,7 +29,7 @@ cd ~/dfir-tools
 - Installs SIFT via `cast install teamdfir/sift-saltstack`
 - Installs Google Chrome
 - Sets up Python virtualenvwrapper with isolated environments
-- Installs additional tools: chaosreader, DCP, FLOSS, RecuperaBit
+- Installs additional tools: chaosreader, FLOSS, RecuperaBit
 - Deploys SIFT aliases to `~/.sift_aliases`
 - Applies GNOME preferences (dark theme, 24h clock, dock config)
 - Runs `make dotfiles` to deploy `.bashrc`, `.vimrc`, `.bash_aliases`

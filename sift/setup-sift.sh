@@ -71,7 +71,6 @@ export ZSH_VERSION=""
 source /usr/share/virtualenvwrapper/virtualenvwrapper.sh
 
 install-chaosreader
-install-dcp
 install-floss
 install-RecuperaBit
 install-volatility

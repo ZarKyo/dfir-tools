@@ -606,46 +606,6 @@ function install-regripper() {
     fi
 }
 
-# https://github.com/nationalsecurityagency/dcp
-function install-dcp() {
-    echo "install-dcp" >> "$LOG" 2>&1
-    if [[ ! -d ~/src/git/dcp ]]; then
-        git clone --quiet https://github.com/NationalSecurityAgency/DCP.git \
-            ~/src/git/dcp >> "$LOG" 2>&1
-        # shellcheck disable=SC2024
-        sudo apt install -yqq gengetopt autoconf libtool libjansson-dev \
-            libdb-dev >> "$LOG" 2>&1
-        cd ~/src/git/dcp || echo "Couldn't cd to dcp."
-        {
-            ./bootstrap.sh
-            ./configure
-            make
-            sudo make install
-            make clean
-        } >> "$LOG" 2>&1
-        print_status "INFO" "Installed DCP."
-    fi
-}
-
-function update-dcp() {
-    echo "update-dcp" >> "$LOG" 2>&1
-    if [[ -d ~/src/git/dcp ]]; then
-        cd ~/src/git/dcp || echo "Couldn't cd to dcp."
-        {
-            make clean
-            git fetch --all
-            git reset --hard origin/master
-            git pull
-            ./bootstrap.sh
-            ./configure
-            make
-            sudo make install
-            make clean
-        } >> "$LOG" 2>&1
-        print_status "INFO" "Updated DCP."
-    fi
-}
-
 # https://github.com/radare/radare2
 function install-radare2() {
     echo "install-radare2" >> "$LOG" 2>&1

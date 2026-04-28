@@ -63,7 +63,6 @@ update-git-repositories
 
 # Update python
 update-chaosreader
-update-dcp
 update-floss
 update-RecuperaBit
 update-volatility
