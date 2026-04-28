@@ -77,11 +77,9 @@ function update-git-repositories() {
 function update-ubuntu() {
     print_status "INFO" "Updating Ubuntu."
     print_status "INFO" "Running apt update."
-    # shellcheck disable=SC2024
-    sudo apt update >> "$LOG" 2>&1
+    sudo apt update 2>&1 | tee -a "$LOG" > /dev/null
     print_status "INFO" "Running apt dist-upgrade."
-    # shellcheck disable=SC2024
-    while ! sudo DEBIAN_FRONTEND=noninteractive apt -y dist-upgrade --force-yes >> "$LOG" 2>&1; do
+    while ! sudo DEBIAN_FRONTEND=noninteractive apt -y dist-upgrade --force-yes 2>&1 | tee -a "$LOG" > /dev/null; do
         echo "APT busy. Will retry in 10 seconds."
         sleep 10
     done
@@ -104,9 +102,8 @@ function turn-off-sound() {
 # Tools for Vmware
 function install-vmware-tools() {
     print_status "INFO" "Installing tools for VMware."
-    # shellcheck disable=SC2024
     sudo apt -yqq install \
-        open-vm-tools-desktop >> "$LOG" 2>&1
+        open-vm-tools-desktop 2>&1 | tee -a "$LOG" > /dev/null
 }
 
 # Install Docker via the helper script from https://github.com/ZarKyo/utils
@@ -116,10 +113,10 @@ function install-docker() {
     fi
     print_status "INFO" "Installing Docker."
     {
-        curl -fsSL https://raw.githubusercontent.com/ZarKyo/utils/main/bin/install-docker.sh \
-            -o /tmp/install-docker.sh
-        bash /tmp/install-docker.sh
-        rm -f /tmp/install-docker.sh
+        curl -fsSL https://raw.githubusercontent.com/ZarKyo/utils/main/bin/install_docker.sh \
+            -o /tmp/install_docker.sh
+        bash /tmp/install_docker.sh
+        rm -f /tmp/install_docker.sh
     } >> "$LOG" 2>&1
     print_status "INFO" "Installed Docker (log out/in for non-sudo docker access)."
 }
@@ -190,8 +187,7 @@ function fix-python-pip() {
             sudo ln -s /usr/local/bin/pip /usr/bin/pip
             sudo rm /tmp/get-pip.py
             sudo -H pip install pyopenssl ndg-httpsclient pyasn1
-            # shellcheck disable=SC2102
-            sudo -H pip install --upgrade urllib3[secure]
+            sudo -H pip install --upgrade "urllib3[secure]"
         } >> "$LOG" 2>&1
         print_status "INFO" "Install pip from pypa.io."
     fi
@@ -214,7 +210,6 @@ function install-utils() {
 # General tools
 function install-general-tools() {
     print_status "INFO" "Installing general tools."
-    # shellcheck disable=SC2024
     sudo DEBIAN_FRONTEND=noninteractive apt -yqq install \
         ascii \
         build-essential \
@@ -246,12 +241,11 @@ function install-general-tools() {
         whois \
         wswedish \
         nano \
-        zip >> "$LOG" 2>&1
-    # shellcheck disable=SC2024
+        zip 2>&1 | tee -a "$LOG" > /dev/null
     sudo DEBIAN_FRONTEND=noninteractive apt -yqq install \
-        unrar >> "${LOG}" 2>&1 ||
+        unrar 2>&1 | tee -a "${LOG}" > /dev/null ||
         sudo DEBIAN_FRONTEND=noninteractive apt -yqq install \
-            unrar-free >> "${LOG}" 2>&1
+            unrar-free 2>&1 | tee -a "${LOG}" > /dev/null
 }
 
 function enable-new-didier() {
@@ -293,18 +287,15 @@ function install-google-chrome() {
     if [[ "$(uname -m)" == "aarch64" ]]; then
         if ! dpkg --status chromium > /dev/null 2>&1; then
             print_status "INFO" "Installing chromium."
-            # shellcheck disable=SC2024
-            DEBIAN_FRONTEND=noninteractive sudo apt -yqq install chromium >> "$LOG" 2>&1
+            DEBIAN_FRONTEND=noninteractive sudo apt -yqq install chromium 2>&1 | tee -a "$LOG" > /dev/null
         fi
     else
         if ! dpkg --status google-chrome-stable > /dev/null 2>&1; then
             print_status "INFO" "Installing Google Chrome."
             cd /tmp || error-exit-message "Couldn't cd /tmp in install-google-chrome."
             wget https://dl.google.com/linux/direct/google-chrome-stable_current_amd64.deb >> "$LOG" 2>&1
-            # shellcheck disable=SC2024
-            sudo dpkg -i google-chrome-stable_current_amd64.deb >> "$LOG" 2>&1 || true
-            # shellcheck disable=SC2024
-            sudo apt -qq -f -y install >> "$LOG" 2>&1
+            sudo dpkg -i google-chrome-stable_current_amd64.deb 2>&1 | tee -a "$LOG" > /dev/null || true
+            sudo apt -qq -f -y install 2>&1 | tee -a "$LOG" > /dev/null
             rm -f google-chrome-stable_current_amd64.deb
         fi
     fi
@@ -348,8 +339,7 @@ function install-regipy() {
         {
             mkvirtualenv regipy || true
             pip install --upgrade pip
-            # shellcheck disable=SC2102
-            pip install regipy[full]
+            pip install "regipy[full]"
         } >> "$LOG" 2>&1
         deactivate || true
         print_status "INFO" "Installed regipy."
@@ -361,8 +351,7 @@ function update-regipy() {
         workon regipy || true
         {
             pip install --upgrade pip
-            # shellcheck disable=SC2102
-            pip install --upgrade regipy[full]
+            pip install --upgrade "regipy[full]"
         } >> "$LOG" 2>&1
         deactivate || true
         print_status "INFO" "Updated regipy."
@@ -376,8 +365,7 @@ function install-autopsy-docker() {
         print_status "INFO" "Installing Autopsy-docker."
         checkout-git-repo https://github.com/ZarKyo/Autopsy-docker.git Autopsy-docker
         cd ~/src/git/Autopsy-docker || error-exit-message "Couldn't cd into install-autopsy-docker."
-        # shellcheck disable=SC2024
-        sudo docker compose build >> "$LOG" 2>&1 || \
+        sudo docker compose build 2>&1 | tee -a "$LOG" > /dev/null || \
             print_status "WARNING" "docker compose build failed — check that docker is installed."
         print_status "INFO" "Installed Autopsy-docker."
     fi
@@ -458,8 +446,7 @@ function install-RecuperaBit() {
         {
             setvirtualenvproject
             pip install --upgrade pip
-            # shellcheck disable=SC2102
-            pip install --upgrade urllib3[secure]
+            pip install --upgrade "urllib3[secure]"
         } >> "$LOG" 2>&1
         deactivate || true
         print_status "INFO" "Checked out RecuperaBit."
@@ -473,8 +460,7 @@ function update-RecuperaBit() {
             git fetch --all
             git reset --hard origin/master
             pip install --upgrade pip
-            # shellcheck disable=SC2102
-            pip install --upgrade urllib3[secure]
+            pip install --upgrade "urllib3[secure]"
         } >> "$LOG" 2>&1
         deactivate || true
         print_status "INFO" "Updated RecuperaBit."
@@ -492,8 +478,7 @@ function install-srum-dump() {
         {
             setvirtualenvproject
             pip install --upgrade pip
-            # shellcheck disable=SC2102
-            pip install --upgrade urllib3[secure]
+            pip install --upgrade "urllib3[secure]"
             pip install impacket openpyxl python-registry
         } >> "$LOG" 2>&1
         deactivate || true
@@ -507,8 +492,7 @@ function update-srum-dump() {
         git fetch --all >> "$LOG" 2>&1
         git reset --hard origin/master >> "$LOG" 2>&1
         pip install --upgrade pip
-        # shellcheck disable=SC2102
-        pip install --upgrade urllib3[secure]
+        pip install --upgrade "urllib3[secure]"
         pip install --upgrade impacket openpyxl python-registry
         deactivate || true
         print_status "INFO" "Updated srum-dump."
@@ -546,12 +530,11 @@ function update-didierstevenssuite() {
 # https://github.com/decalage2/oletools.git
 function install-oletools() {
     echo "install-oletools" >> "$LOG" 2>&1
-    # shellcheck disable=SC2102
     if [[ ! -d ~/.virtualenvs/oletools ]]; then
         {
             mkvirtualenv oletools || true
             pip install --upgrade pip
-            pip install --upgrade urllib3[secure]
+            pip install --upgrade "urllib3[secure]"
             pip install oletools
         } >> "$LOG" 2>&1
         print_status "INFO" "Installed oletools."
@@ -609,11 +592,10 @@ function install-regripper() {
 # https://github.com/radare/radare2
 function install-radare2() {
     echo "install-radare2" >> "$LOG" 2>&1
-    # shellcheck disable=SC2024
     if [[ ! -d ~/src/git/radare2 ]]; then
         print_status "INFO" "Starting installation of radare2."
-        sudo apt remove -y radare2 >> "$LOG" 2>&1
-        sudo apt-get autoremove -y >> "$LOG" 2>&1
+        sudo apt remove -y radare2 2>&1 | tee -a "$LOG" > /dev/null
+        sudo apt-get autoremove -y 2>&1 | tee -a "$LOG" > /dev/null
         checkout-git-repo https://github.com/radare/radare2.git radare2
         cd ~/src/git/radare2 || error-exit-message "Couldn't cd into install-radare2."
         make clean >> "$LOG" 2>&1 || true
@@ -624,10 +606,9 @@ function install-radare2() {
 
 function update-radare2() {
     echo "update-radare2" >> "$LOG" 2>&1
-    # shellcheck disable=SC2024
     if [[ -d ~/src/git/radare2 ]]; then
-        sudo apt remove -y radare2 >> "$LOG" 2>&1
-        sudo apt-get autoremove -y >> "$LOG" 2>&1
+        sudo apt remove -y radare2 2>&1 | tee -a "$LOG" > /dev/null
+        sudo apt-get autoremove -y 2>&1 | tee -a "$LOG" > /dev/null
         cd ~/src/git/radare2 || error-exit-message "Couldn't cd into update-radare2."
         {
             git fetch --all
@@ -661,7 +642,6 @@ function install-sift() {
         # Does not validate gpg at the moment due to problems downloading keys in some networks...
         sudo dpkg -i cast*.deb
         sudo systemctl stop ssh.service
-        # shellcheck disable=SC2024
         # --pre-release: enables Ubuntu 24.04 support (unstable salt states); uncomment when ready
         # sudo /usr/bin/cast install --pre-release teamdfir/sift-saltstack 2>&1 | tee -a "$LOG"
         sudo /usr/bin/cast install teamdfir/sift-saltstack 2>&1 | tee -a "$LOG"
@@ -674,25 +654,19 @@ function install-sift() {
 function update-sift() {
     START_FRESHCLAM=1
     print_status "INFO" "Start SITF upgrade."
-    # shellcheck disable=SC2024
-    if sudo service clamav-freshclam status | grep "Active: active" >> "$LOG" 2>&1; then
-        # shellcheck disable=SC2024
-        sudo service clamav-freshclam stop >> "$LOG" 2>&1
+    if sudo service clamav-freshclam status 2>&1 | tee -a "$LOG" | grep -q "Active: active"; then
+        sudo service clamav-freshclam stop 2>&1 | tee -a "$LOG" > /dev/null
         START_FRESHCLAM=0
     fi
     {
-        # shellcheck disable=SC2024
         sudo /usr/local/bin/sift update || true
-        # shellcheck disable=SC2024
         sudo /usr/local/bin/sift upgrade
         # Run upgrade twice since I often seen some fails the first time
-        # shellcheck disable=SC2024
         sudo /usr/local/bin/sift upgrade
     } >> "$LOG" 2>&1
     print_status "INFO" "SITF upgrade finished."
     if [[ $START_FRESHCLAM -eq 0 ]]; then
-        # shellcheck disable=SC2024
-        sudo service clamav-freshclam start >> "$LOG" 2>&1
+        sudo service clamav-freshclam start 2>&1 | tee -a "$LOG" > /dev/null
     fi
 }
 
@@ -719,10 +693,9 @@ function remove-old() {
     fi
 
     # Remove old wireshark. Caused errors during update
-    # shellcheck disable=SC2024
     if dpkg -l wireshark | grep 1.12 >> "$LOG" 2>&1; then
         print_status "INFO" "Remove old versions of wireshark."
-        sudo apt -yqq remove wireshark >> "$LOG" 2>&1
+        sudo apt -yqq remove wireshark 2>&1 | tee -a "$LOG" > /dev/null
     fi
 }
 
@@ -733,12 +706,11 @@ function remove-old() {
 function install-apt-remnux() {
     print_status "INFO" "Installing apt-packages for REMnux."
     # sleuthkit provides hfind(1)
-    # shellcheck disable=SC2024
     sudo apt -yqq install \
         mpack \
         sleuthkit \
         testdisk \
-        tree >> "$LOG" 2>&1
+        tree 2>&1 | tee -a "$LOG" > /dev/null
 }
 
 function install-remnux() {

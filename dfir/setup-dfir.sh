@@ -36,7 +36,6 @@ if [[ ! -e /usr/local/bin/remnux ]]; then
 fi
 
 sudo systemctl stop ssh.service
-# shellcheck disable=SC2024
 sudo /usr/local/bin/remnux install --mode=addon 2>&1 | tee -a "$LOG"
 sudo systemctl start ssh.service
 touch ~/.config/.remnux
