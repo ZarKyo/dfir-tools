@@ -31,8 +31,8 @@ sudo -v
 ####################
 
 # shellcheck source=/dev/null
-if [[ -e ~/bin/dfir-tools/utils.sh ]]; then
-    . ~/bin/dfir-tools/utils.sh
+if [[ -e ~/src/bin/dfir-tools/common/bin/utils.sh ]]; then
+    . ~/src/bin/dfir-tools/common/bin/utils.sh
 else
     echo "Cant find utils.sh."
     exit 1
@@ -82,7 +82,7 @@ turn-off-sound
 
 # Install aliases for SIFT. This way we can update them without
 # affecting .bash_aliases.
-cp ~/dfir-tools/sift/.sift_aliases ~/.sift_aliases
+cp ~/src/bin/dfir-tools/sift/.sift_aliases ~/.sift_aliases
 
 CONF_FILE="$HOME/.config/.manual_conf"
 
@@ -98,7 +98,7 @@ if [[ ! -e "$CONF_FILE" ]]; then
     log_manual "1. Change desktop resolution to be able to do the other steps."
     log_manual "2. Security & Privacy -> Search -> Turn off online search results."
     log_manual "3. -> Diagnostics -> Turn off error reports."
-    log_manual "4. Run 'make dotfiles' in ~/dfir-tools for .bashrc etc."
+    log_manual "4. Run 'make dotfiles' in ~/src/bin/dfir-tools for .bashrc etc."
     log_manual "##################################################################"
 
     # Create the config file to avoid repeating this block

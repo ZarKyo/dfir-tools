@@ -139,7 +139,7 @@ function create-common-directories() {
         linux-mount1 linux-mount2 linux-mount3
         linux-mount4 linux-mount5 linux-mount6
         linux-mount7 linux-mount8 linux-mount9
-        shadow_mount usb vss
+        windows_mount shadow_mount usb vss
         windows-mount1 windows-mount2 windows-mount3
         windows-mount4 windows-mount5 windows-mount6
         windows-mount7 windows-mount8 windows-mount9
@@ -200,10 +200,9 @@ function fix-python-pip() {
 function install-utils() {
     print_status "INFO" "Installing utils"
     if [[ ! -d ~/src/utils ]]; then
-        [[ -d ~/src ]] || mkdir ~/src
-        cd ~/src || exit
-        git clone https://github.com/zarkyo/utils.git >> "$LOG" 2>&1
-        cd || exit
+        mkdir -p ~/src
+        git clone https://github.com/ZarKyo/utils.git ~/src/utils >> "$LOG" 2>&1 \
+            || { print_status "ERROR" "Failed to clone utils repo."; return 1; }
     fi
     print_status "INFO" "Done installing utils"
 }
@@ -311,7 +310,7 @@ function install-google-chrome() {
     fi
 }
 
-# Install Volatility 3 via Abyss-W4tcher's vol_ez_install (docker-based, no venv).
+# Install Volatility 3 via Abyss-W4tcher's vol_ez_install (docker-based).
 # https://github.com/volatilityfoundation/volatility3
 # https://github.com/Abyss-W4tcher/volatility-scripts
 function install-volatility() {
@@ -602,8 +601,8 @@ function install-regripper() {
         git clone --quiet https://github.com/keydet89/RegRipper4.0.git \
             ~/src/git/RegRipper4.0 >> "$LOG" 2>&1
         print_status "INFO" "Checked out RegRipper4.0."
-        ln -s ~/REMnux-tools/files/regripper ~/src/bin/regripper
-        chmod 755 ~/REMnux-tools/files/regripper
+        ln -s ~/dfir-tools/files/regripper ~/src/bin/regripper
+        chmod 755 ~/dfir-tools/files/regripper
     fi
 }
 

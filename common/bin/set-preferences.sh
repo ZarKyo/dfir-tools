@@ -5,9 +5,9 @@ IFS=$'\n\t'
 
 # Set GNOME Shell dock favorite applications
 gsettings set org.gnome.shell favorite-apps "[
-    'firefox_firefox.desktop',
     'org.gnome.Nautilus.desktop',
     'org.gnome.Terminal.desktop',
+    'firefox_firefox.desktop',
     'org.wireshark.Wireshark.desktop'
 ]"
 

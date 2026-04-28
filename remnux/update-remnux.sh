@@ -27,8 +27,8 @@ touch $LOG
 sudo -v
 
 # shellcheck source=/dev/null
-if [[ -e ~/bin/dfir-tools/utils.sh ]]; then
-    . ~/bin/dfir-tools/utils.sh
+if [[ -e  ~/src/bin/dfir-tools/common/bin/utils.sh ]]; then
+    .  ~/src/bin/dfir-tools/common/bin/utils.sh
 else
     echo "Cant find utils.sh."
     exit 1
