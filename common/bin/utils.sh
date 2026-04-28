@@ -109,20 +109,47 @@ function install-vmware-tools() {
         open-vm-tools-desktop >> "$LOG" 2>&1
 }
 
+# Install Docker via the helper script from https://github.com/ZarKyo/utils
+function install-docker() {
+    if command -v docker > /dev/null 2>&1; then
+        return
+    fi
+    print_status "INFO" "Installing Docker."
+    {
+        curl -fsSL https://raw.githubusercontent.com/ZarKyo/utils/main/bin/install-docker.sh \
+            -o /tmp/install-docker.sh
+        bash /tmp/install-docker.sh
+        rm -f /tmp/install-docker.sh
+    } >> "$LOG" 2>&1
+    print_status "INFO" "Installed Docker (log out/in for non-sudo docker access)."
+}
+
 # Create common directories
 function create-common-directories() {
     print_status "INFO" "Create basic directory structure."
-    if [ ! -d ~/src ]; then
-        mkdir -p ~/src/bin
-    fi
 
-    if [ ! -d ~/src/git ]; then
-        mkdir -p ~/src/git
-    fi
+    local src_dirs=(bin git python)
+    for dir in "${src_dirs[@]}"; do
+        mkdir -p ~/src/"$dir"
+    done
 
-    if [ ! -d ~/src/python ]; then
-        mkdir -p ~/src/python
-    fi
+    local mnt_dirs=(
+        aff bde e01 evidence1 ewf ewf_mount
+        ext ext4 hgfs iscsi
+        linux-mount1 linux-mount2 linux-mount3
+        linux-mount4 linux-mount5 linux-mount6
+        linux-mount7 linux-mount8 linux-mount9
+        shadow_mount usb vss
+        windows-mount1 windows-mount2 windows-mount3
+        windows-mount4 windows-mount5 windows-mount6
+        windows-mount7 windows-mount8 windows-mount9
+        xfs
+    )
+    for dir in "${mnt_dirs[@]}"; do
+        mkdir -p "/mnt/$dir"
+    done
+
+    print_status "SUCCESS" "Directory structure created."
 }
 
 # Create docker directories.
@@ -284,75 +311,89 @@ function install-google-chrome() {
     fi
 }
 
-# Install Volatility
-# First argument should be target path to check out volatility.
+# Install Volatility 3 via Abyss-W4tcher's vol_ez_install (docker-based, no venv).
+# https://github.com/volatilityfoundation/volatility3
+# https://github.com/Abyss-W4tcher/volatility-scripts
 function install-volatility() {
-    VOLATILITY_PATH=$1
-    if [[ $# -eq 0 ]]; then
-        echo "One argument expected for install-volatility()"
-        exit 1
+    echo "install-volatility" >> "$LOG" 2>&1
+    if [[ -d ~/vol3 ]]; then
+        return
     fi
-    if [ -d "$VOLATILITY_PATH" ]; then
-        echo "$VOLATILITY_PATH already exists!"
-        exit 1
-    fi
-    print_status "INFO" "Install volatility to $VOLATILITY_PATH."
-    git clone --quiet https://github.com/volatilityfoundation/volatility "$VOLATILITY_PATH"
-    cd "$VOLATILITY_PATH" || error-exit-message "Could not cd $VOLATILITY_PATH in install-volatility."
-    pip install \
-        Pillow \
-        distorm3 \
-        openpyxl \
-        pycrypto \
-        ujson \
-        yara-python
-    python setup.py install
+    print_status "INFO" "Install volatility3 via vol_ez_install."
+    {
+        wget --quiet -O /tmp/vol_ez_install.sh \
+            https://raw.githubusercontent.com/Abyss-W4tcher/volatility-scripts/master/vol_ez_install/vol_ez_install.sh
+        chmod +x /tmp/vol_ez_install.sh
+        /tmp/vol_ez_install.sh vol3_install
+        rm -f /tmp/vol_ez_install.sh
+    } >> "$LOG" 2>&1
+    print_status "INFO" "Installed volatility3."
 }
 
 function update-volatility() {
-    VOLATILITY_PATH=$1
-    if [[ -d "$VOLATILITY_PATH" ]]; then
-        cd "$VOLATILITY_PATH" || error-exit-message "Couldn't cd $VOLATILITY_PATH in update-volatility."
-        print_status "INFO" "Update volatility in $VOLATILITY_PATH."
+    if [[ -d ~/vol3 ]]; then
+        cd ~/vol3 || error-exit-message "Couldn't cd into update-volatility."
+        print_status "INFO" "Update volatility3."
         {
             git fetch --all
-            git reset --hard origin/master
-            pip install --upgrade \
-                Pillow \
-                distorm3 \
-                openpyxl \
-                pycrypto \
-                ujson \
-                yara-python
-            python setup.py install
+            git reset --hard origin/develop
         } >> "$LOG" 2>&1
+        print_status "INFO" "Updated volatility3."
     fi
 }
 
-# Keep a seperate environment for volatility (to be able to upgrade separatly)
-function install-volatility-env() {
-    echo "install-volatility-env" >> "$LOG" 2>&1
-    # shellcheck disable=SC2102
-    if [[ ! -d ~/src/python/volatility ]]; then
-        mkdir -p ~/src/python/volatility
+# https://github.com/mkorman90/regipy
+function install-regipy() {
+    echo "install-regipy" >> "$LOG" 2>&1
+    if [[ ! -d ~/.virtualenvs/regipy ]]; then
         {
-            mkvirtualenv volatility || true
+            mkvirtualenv regipy || true
             pip install --upgrade pip
-            pip install --upgrade urllib3[secure]
-            install-volatility ~/src/python/volatility/volatility
+            # shellcheck disable=SC2102
+            pip install regipy[full]
         } >> "$LOG" 2>&1
         deactivate || true
-        print_status "INFO" "Checked out Volatility."
+        print_status "INFO" "Installed regipy."
     fi
 }
 
-function update-volatility-env() {
-    if [[ -d ~/src/python/volatility ]]; then
-        workon volatility || true
-        cd ~/src/python/volatility || error-exit-message "Couldn't cd into update-volatility-env."
-        update-volatility ~/src/python/volatility/volatility
+function update-regipy() {
+    if [[ -d ~/.virtualenvs/regipy ]]; then
+        workon regipy || true
+        {
+            pip install --upgrade pip
+            # shellcheck disable=SC2102
+            pip install --upgrade regipy[full]
+        } >> "$LOG" 2>&1
         deactivate || true
-        print_status "INFO" "Updated Volatility."
+        print_status "INFO" "Updated regipy."
+    fi
+}
+
+# https://github.com/ZarKyo/Autopsy-docker
+function install-autopsy-docker() {
+    echo "install-autopsy-docker" >> "$LOG" 2>&1
+    if [[ ! -d ~/src/git/Autopsy-docker ]]; then
+        print_status "INFO" "Installing Autopsy-docker."
+        checkout-git-repo https://github.com/ZarKyo/Autopsy-docker.git Autopsy-docker
+        cd ~/src/git/Autopsy-docker || error-exit-message "Couldn't cd into install-autopsy-docker."
+        # shellcheck disable=SC2024
+        sudo docker compose build >> "$LOG" 2>&1 || \
+            print_status "WARNING" "docker compose build failed — check that docker is installed."
+        print_status "INFO" "Installed Autopsy-docker."
+    fi
+}
+
+function update-autopsy-docker() {
+    if [[ -d ~/src/git/Autopsy-docker ]]; then
+        cd ~/src/git/Autopsy-docker || error-exit-message "Couldn't cd into update-autopsy-docker."
+        {
+            git fetch --all
+            git reset --hard "origin/$(git symbolic-ref --short refs/remotes/origin/HEAD | sed 's@^origin/@@')"
+            sudo docker compose build --pull
+        } >> "$LOG" 2>&1 || \
+            print_status "WARNING" "Autopsy-docker update failed."
+        print_status "INFO" "Updated Autopsy-docker."
     fi
 }
 

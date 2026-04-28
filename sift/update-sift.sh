@@ -39,6 +39,7 @@ print_status "INFO" "Make sure where not in a virtualenv."
 deactivate 2> /dev/null || true
 
 remove-old
+create-common-directories
 
 print_status "INFO" "Run update-sift script."
 update-sift
@@ -65,5 +66,8 @@ update-chaosreader
 update-dcp
 update-floss
 update-RecuperaBit
+update-volatility
+update-regipy
+update-autopsy-docker
 
 print_status "INFO" "update-sift.sh done."

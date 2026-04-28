@@ -50,6 +50,7 @@ update-ubuntu
 install-general-tools
 install-vmware-tools
 install-utils
+install-docker
 
 install-sift
 cleanup-sift
@@ -73,6 +74,9 @@ install-chaosreader
 install-dcp
 install-floss
 install-RecuperaBit
+install-volatility
+install-regipy
+install-autopsy-docker
 
 turn-off-sound
 
