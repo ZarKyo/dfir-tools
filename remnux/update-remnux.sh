@@ -8,7 +8,7 @@ set -euo pipefail
 IFS=$'\n\t'
 
 if [[ -e ~/.config/.sift ]]; then
-    echo "You have already installed SIFT ! Use update-sift.sh insteed."
+    printf '\033[0;31mYou have already installed SIFT! Use update-sift.sh instead.\033[0m\n' >&2
     exit 1
 fi
 
@@ -30,7 +30,7 @@ sudo -v
 if [[ -e  ~/src/bin/dfir-tools/common/bin/utils.sh ]]; then
     .  ~/src/bin/dfir-tools/common/bin/utils.sh
 else
-    echo "Cant find utils.sh."
+    printf '\033[0;31mCant find utils.sh.\033[0m\n' >&2
     exit 1
 fi
 
@@ -52,10 +52,10 @@ print_status "INFO" "Update virtualenvwrapper."
 # Use virtualenvwrapper for python tools
 export WORKON_HOME=$HOME/src/python
 export VIRTUALENVWRAPPER_HOOK_DIR=$HOME/src/python/hooks
-# Prevent virtualenvwrapper from failing under 'set -u'
-export ZSH_VERSION=""
+set +u
 # shellcheck source=/dev/null
 source /usr/share/virtualenvwrapper/virtualenvwrapper.sh
+set -u
 
 # Update git repositories
 update-git-repositories

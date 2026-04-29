@@ -14,7 +14,7 @@ touch "$LOG"
 if [[ -e  ~/src/bin/dfir-tools/common/bin/utils.sh ]]; then
     .  ~/src/bin/dfir-tools/common/bin/utils.sh
 else
-    echo "Cant find utils.sh."
+    printf '\033[0;31mCant find utils.sh.\033[0m\n' >&2
     exit 1
 fi
 
@@ -44,6 +44,6 @@ install-apt-remnux
 cleanup-remnux
 
 # REMnux aliases (SIFT aliases already deployed by setup-sift.sh)
-cp ~/dfir-tools/remnux/.remnux_aliases ~/.remnux_aliases
+cp "${SCRIPT_DIR}/../remnux/.remnux_aliases" ~/.remnux_aliases
 
 print_status "INFO" "DFIR installation finished."

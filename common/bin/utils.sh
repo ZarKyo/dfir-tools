@@ -51,7 +51,7 @@ function check_root() {
 
 # Checkout git repo to directory
 function checkout-git-repo() {
-    echo "Checkout $2 to $1" >> "$LOG" 2>&1
+    print_status "INFO" "Checkout $2 to $1"
     if [[ ! -d ~/src/git/"$2" ]]; then
         git clone --quiet "$1" ~/src/git/"$2" >> "$LOG" 2>&1
         print_status "INFO" "Checkout git repo $1"
@@ -68,7 +68,9 @@ function update-git-repositories() {
         (
             cd "$repo" || error-exit-message "Couldn't cd into update-git-repositories"
             git fetch --all >> "$LOG" 2>&1
-            git reset --hard origin/master >> "$LOG" 2>&1
+            default_branch="$(git symbolic-ref refs/remotes/origin/HEAD 2>/dev/null | \
+                sed 's@^refs/remotes/origin/@@')" || default_branch="main"
+            git reset --hard "origin/${default_branch}" >> "$LOG" 2>&1
         )
     done
     print_status "INFO" "Updated git repositories."
@@ -80,7 +82,7 @@ function update-ubuntu() {
     sudo apt update 2>&1 | tee -a "$LOG" > /dev/null
     print_status "INFO" "Running apt dist-upgrade."
     while ! sudo DEBIAN_FRONTEND=noninteractive apt -y dist-upgrade --force-yes 2>&1 | tee -a "$LOG" > /dev/null; do
-        echo "APT busy. Will retry in 10 seconds."
+        print_status "WARNING" "APT busy. Will retry in 10 seconds."
         sleep 10
     done
 }
@@ -89,15 +91,6 @@ function update-ubuntu() {
 # System setup
 ####################
 
-# Turn off sound on start up
-function turn-off-sound() {
-    if [[ ! -e /usr/share/glib-2.0/schemas/50_unity-greeter.gschema.override ]]; then
-        echo "turn-off-sound" >> "$LOG" 2>&1
-        echo -e '[com.canonical.unity-greeter]\nplay-ready-sound = false' |
-            sudo tee -a /usr/share/glib-2.0/schemas/50_unity-greeter.gschema.override > /dev/null
-        sudo glib-compile-schemas /usr/share/glib-2.0/schemas/
-    fi
-}
 
 # Tools for Vmware
 function install-vmware-tools() {
@@ -131,12 +124,12 @@ function create-common-directories() {
     done
 
     local mnt_dirs=(
-        aff bde e01 evidence1 ewf ewf_mount
+        aff bde e01 evidence1 ewf ewf-mount
         ext ext4 hgfs iscsi
         linux-mount1 linux-mount2 linux-mount3
         linux-mount4 linux-mount5 linux-mount6
         linux-mount7 linux-mount8 linux-mount9
-        windows_mount shadow_mount usb vss
+        windows-mount shadow-mount usb vss
         windows-mount1 windows-mount2 windows-mount3
         windows-mount4 windows-mount5 windows-mount6
         windows-mount7 windows-mount8 windows-mount9
@@ -159,7 +152,7 @@ function create-docker-directories() {
     for dir in pescanner radare2 mastiff thug v8 viper; do
         if [ ! -d ~/docker/$dir ]; then
             mkdir ~/docker/$dir
-            chmod 777 ~/docker/$dir
+            chmod 755 ~/docker/$dir
         fi
     done
 }
@@ -177,21 +170,6 @@ function create-cases-not-mounted() {
     fi
 }
 
-# Fix problem with pip - https://github.com/pypa/pip/issues/1093
-function fix-python-pip() {
-    if [[ ! -e /usr/local/bin/pip ]]; then
-        {
-            sudo apt remove -yqq --auto-remove python-pip
-            wget --quiet -O /tmp/get-pip.py https://bootstrap.pypa.io/get-pip.py
-            sudo -H python /tmp/get-pip.py
-            sudo ln -s /usr/local/bin/pip /usr/bin/pip
-            sudo rm /tmp/get-pip.py
-            sudo -H pip install pyopenssl ndg-httpsclient pyasn1
-            sudo -H pip install --upgrade "urllib3[secure]"
-        } >> "$LOG" 2>&1
-        print_status "INFO" "Install pip from pypa.io."
-    fi
-}
 
 function install-utils() {
     print_status "INFO" "Installing utils"
@@ -249,7 +227,7 @@ function install-general-tools() {
 }
 
 function enable-new-didier() {
-    echo "enable-new-didier" >> "$LOG" 2>&1
+    print_status "INFO" "Setting permissions on DidierStevensSuite scripts"
     if [[ -d ~/src/python/didierstevenssuite ]]; then
         chmod 755 ~/src/python/didierstevenssuite/
         chmod 755 ~/src/python/didierstevenssuite/base64dump.py
@@ -304,9 +282,11 @@ function install-google-chrome() {
 # Install Volatility 3 via Abyss-W4tcher's vol_ez_install (docker-based).
 # https://github.com/volatilityfoundation/volatility3
 # https://github.com/Abyss-W4tcher/volatility-scripts
+# vol_ez_install places volatility3 in ~/vol3; we symlink it into ~/src/git/ for consistency.
 function install-volatility() {
-    echo "install-volatility" >> "$LOG" 2>&1
+    print_status "INFO" "install-volatility"
     if [[ -d ~/vol3 ]]; then
+        [[ ! -e ~/src/git/volatility3 ]] && ln -sf ~/vol3 ~/src/git/volatility3
         return
     fi
     print_status "INFO" "Install volatility3 via vol_ez_install."
@@ -317,6 +297,7 @@ function install-volatility() {
         /tmp/vol_ez_install.sh vol3_install
         rm -f /tmp/vol_ez_install.sh
     } >> "$LOG" 2>&1
+    [[ -d ~/vol3 ]] && ln -sf ~/vol3 ~/src/git/volatility3
     print_status "INFO" "Installed volatility3."
 }
 
@@ -326,7 +307,9 @@ function update-volatility() {
         print_status "INFO" "Update volatility3."
         {
             git fetch --all
-            git reset --hard origin/develop
+            default_branch="$(git symbolic-ref refs/remotes/origin/HEAD 2>/dev/null | \
+                sed 's@^refs/remotes/origin/@@')" || default_branch="develop"
+            git reset --hard "origin/${default_branch}"
         } >> "$LOG" 2>&1
         print_status "INFO" "Updated volatility3."
     fi
@@ -334,7 +317,7 @@ function update-volatility() {
 
 # https://github.com/mkorman90/regipy
 function install-regipy() {
-    echo "install-regipy" >> "$LOG" 2>&1
+    print_status "INFO" "install-regipy"
     if [[ ! -d ~/.virtualenvs/regipy ]]; then
         {
             mkvirtualenv regipy || true
@@ -360,7 +343,7 @@ function update-regipy() {
 
 # https://github.com/ZarKyo/Autopsy-docker
 function install-autopsy-docker() {
-    echo "install-autopsy-docker" >> "$LOG" 2>&1
+    print_status "INFO" "install-autopsy-docker"
     if [[ ! -d ~/src/git/Autopsy-docker ]]; then
         print_status "INFO" "Installing Autopsy-docker."
         checkout-git-repo https://github.com/ZarKyo/Autopsy-docker.git Autopsy-docker
@@ -392,7 +375,7 @@ function install-pi-rho-security() {
             sudo add-apt-repository -y ppa:pi-rho/security
             sudo apt -qq update
             while ! sudo apt -y dist-upgrade --force-yes; do
-                echo "APT busy. Will retry in 10 seconds."
+                print_status "WARNING" "APT busy. Will retry in 10 seconds."
                 sleep 10
             done
             sudo apt -qq -y install html2text nasm
@@ -403,7 +386,7 @@ function install-pi-rho-security() {
 
 # https://github.com/brendangregg/Chaosreader
 function install-chaosreader() {
-    echo "install-chaosreader" >> "$LOG" 2>&1
+    print_status "INFO" "install-chaosreader"
     if [[ ! -e ~/src/bin/chaosreader ]]; then
         wget -q -O ~/src/bin/chaosreader \
             https://raw.githubusercontent.com/brendangregg/Chaosreader/master/chaosreader >> "$LOG" 2>&1
@@ -418,13 +401,26 @@ function update-chaosreader() {
     install-chaosreader
 }
 
-# Fireeye floss
+# https://github.com/mandiant/flare-floss
 function install-floss() {
-    echo "install-floss" >> "$LOG" 2>&1
+    print_status "INFO" "install-floss"
     if [[ ! -e ~/src/bin/floss ]]; then
-        wget -q -O ~/src/bin/floss \
-            https://s3.amazonaws.com/build-artifacts.floss.flare.fireeye.com/travis/linux/dist/floss >> "$LOG" 2>&1
-        chmod +x ~/src/bin/floss
+        local url tmpdir
+        url="$(curl -s https://api.github.com/repos/mandiant/flare-floss/releases/latest | \
+            jq -r '.assets[] | select(.name | test("linux"; "i")) | .browser_download_url' | head -1)"
+        if [[ -z "$url" ]]; then
+            print_status "ERROR" "Could not find floss Linux release on GitHub."
+            return 1
+        fi
+        tmpdir="$(mktemp -d)"
+        wget -q -O "${tmpdir}/floss_dl" "$url" >> "$LOG" 2>&1
+        if file "${tmpdir}/floss_dl" | grep -q -i 'zip'; then
+            unzip -q "${tmpdir}/floss_dl" -d "${tmpdir}" >> "$LOG" 2>&1
+            install -m 755 "${tmpdir}/floss" ~/src/bin/floss
+        else
+            install -m 755 "${tmpdir}/floss_dl" ~/src/bin/floss
+        fi
+        rm -rf "${tmpdir}"
         print_status "INFO" "Installed floss."
     fi
 }
@@ -437,7 +433,7 @@ function update-floss() {
 
 # https://github.com/Lazza/RecuperaBit
 function install-RecuperaBit() {
-    echo "install-RecuperaBit" >> "$LOG" 2>&1
+    print_status "INFO" "install-RecuperaBit"
     if [[ ! -d ~/src/python/RecuperaBit ]]; then
         git clone --quiet https://github.com/Lazza/RecuperaBit.git \
             ~/src/python/RecuperaBit >> "$LOG" 2>&1
@@ -456,9 +452,12 @@ function install-RecuperaBit() {
 function update-RecuperaBit() {
     if [[ -d ~/src/python/RecuperaBit ]]; then
         workon RecuperaBit || true
+        cd ~/src/python/RecuperaBit || error-exit-message "Couldn't cd into update-RecuperaBit."
         {
             git fetch --all
-            git reset --hard origin/master
+            default_branch="$(git symbolic-ref refs/remotes/origin/HEAD 2>/dev/null | \
+                sed 's@^refs/remotes/origin/@@')" || default_branch="main"
+            git reset --hard "origin/${default_branch}"
             pip install --upgrade pip
             pip install --upgrade "urllib3[secure]"
         } >> "$LOG" 2>&1
@@ -469,7 +468,7 @@ function update-RecuperaBit() {
 
 # https://github.com/MarkBaggett/srum-dump
 function install-srum-dump() {
-    echo "install-srum-dump" >> "$LOG" 2>&1
+    print_status "INFO" "install-srum-dump"
     if [[ ! -d ~/src/python/srum-dump ]]; then
         git clone --quiet https://github.com/MarkBaggett/srum-dump.git \
             ~/src/python/srum-dump >> "$LOG" 2>&1
@@ -489,11 +488,16 @@ function install-srum-dump() {
 function update-srum-dump() {
     if [[ -d ~/src/python/srum-dump ]]; then
         workon srum-dump || true
-        git fetch --all >> "$LOG" 2>&1
-        git reset --hard origin/master >> "$LOG" 2>&1
-        pip install --upgrade pip
-        pip install --upgrade "urllib3[secure]"
-        pip install --upgrade impacket openpyxl python-registry
+        cd ~/src/python/srum-dump || error-exit-message "Couldn't cd into update-srum-dump."
+        {
+            git fetch --all
+            default_branch="$(git symbolic-ref refs/remotes/origin/HEAD 2>/dev/null | \
+                sed 's@^refs/remotes/origin/@@')" || default_branch="main"
+            git reset --hard "origin/${default_branch}"
+        } >> "$LOG" 2>&1
+        pip install --upgrade pip >> "$LOG" 2>&1
+        pip install --upgrade "urllib3[secure]" >> "$LOG" 2>&1
+        pip install --upgrade impacket openpyxl python-registry >> "$LOG" 2>&1
         deactivate || true
         print_status "INFO" "Updated srum-dump."
     fi
@@ -501,7 +505,7 @@ function update-srum-dump() {
 
 # https://github.com/DidierStevens/DidierStevensSuite
 function install-didierstevenssuite() {
-    echo "install-didierstevenssuite" >> "$LOG" 2>&1
+    print_status "INFO" "install-didierstevenssuite"
     if [[ ! -d ~/src/python/didierstevenssuite ]]; then
         {
             git clone --quiet https://github.com/DidierStevens/DidierStevensSuite.git \
@@ -519,8 +523,12 @@ function update-didierstevenssuite() {
     if [[ -d ~/src/python/didierstevenssuite ]]; then
         workon didierstevenssuite || true
         cd ~/src/python/didierstevenssuite || error-exit-message "Couldn't cd into update-didierstevenssuite."
-        git fetch --all >> "$LOG" 2>&1
-        git reset --hard origin/master >> "$LOG" 2>&1
+        {
+            git fetch --all
+            default_branch="$(git symbolic-ref refs/remotes/origin/HEAD 2>/dev/null | \
+                sed 's@^refs/remotes/origin/@@')" || default_branch="main"
+            git reset --hard "origin/${default_branch}"
+        } >> "$LOG" 2>&1
         enable-new-didier
         deactivate || true
         print_status "INFO" "Updated DidierStevensSuite."
@@ -529,7 +537,7 @@ function update-didierstevenssuite() {
 
 # https://github.com/decalage2/oletools.git
 function install-oletools() {
-    echo "install-oletools" >> "$LOG" 2>&1
+    print_status "INFO" "install-oletools"
     if [[ ! -d ~/.virtualenvs/oletools ]]; then
         {
             mkvirtualenv oletools || true
@@ -552,12 +560,14 @@ function update-oletools() {
 
 # https://github.com/bontchev/pcodedmp
 function install-pcodedmp() {
-    echo "install-pcodedmp" >> "$LOG" 2>&1
+    print_status "INFO" "install-pcodedmp"
     if [[ ! -d ~/src/python/pcodedmp ]]; then
+        git clone --quiet https://github.com/bontchev/pcodedmp.git \
+            ~/src/python/pcodedmp >> "$LOG" 2>&1
+        cd ~/src/python/pcodedmp || error-exit-message "Couldn't cd into install-pcodedmp."
         {
-            git clone --quiet https://github.com/bontchev/pcodedmp.git \
-                ~/src/python/pcodedmp
             mkvirtualenv pcodedmp || true
+            setvirtualenvproject
             pip install --upgrade pip setuptools
             pip install oletools
         } >> "$LOG" 2>&1
@@ -570,8 +580,12 @@ function update-pcodedmp() {
     if [[ -d ~/src/python/pcodedmp ]]; then
         workon pcodedmp || true
         cd ~/src/python/pcodedmp || error-exit-message "Couldn't cd into update-pcodedmp."
-        git fetch --all >> "$LOG" 2>&1
-        git reset --hard origin/master >> "$LOG" 2>&1
+        {
+            git fetch --all
+            default_branch="$(git symbolic-ref refs/remotes/origin/HEAD 2>/dev/null | \
+                sed 's@^refs/remotes/origin/@@')" || default_branch="main"
+            git reset --hard "origin/${default_branch}"
+        } >> "$LOG" 2>&1
         deactivate || true
         print_status "INFO" "Updated pcodedmp."
     fi
@@ -579,19 +593,26 @@ function update-pcodedmp() {
 
 # https://github.com/keydet89/RegRipper4.0
 function install-regripper() {
-    echo "install-regripper" >> "$LOG" 2>&1
+    print_status "INFO" "install-regripper"
     if [[ ! -d ~/src/git/RegRipper4.0 ]]; then
         git clone --quiet https://github.com/keydet89/RegRipper4.0.git \
             ~/src/git/RegRipper4.0 >> "$LOG" 2>&1
         print_status "INFO" "Checked out RegRipper4.0."
-        ln -s ~/dfir-tools/files/regripper ~/src/bin/regripper
-        chmod 755 ~/dfir-tools/files/regripper
+        # dfir-tools is at ~/src/bin/dfir-tools when run via packer, ~/dfir-tools standalone
+        local dfir_tools_dir
+        if [[ -d ~/src/bin/dfir-tools ]]; then
+            dfir_tools_dir=~/src/bin/dfir-tools
+        else
+            dfir_tools_dir=~/dfir-tools
+        fi
+        chmod 755 "${dfir_tools_dir}/common/files/regripper"
+        ln -sf "${dfir_tools_dir}/common/files/regripper" ~/src/bin/regripper
     fi
 }
 
 # https://github.com/radare/radare2
 function install-radare2() {
-    echo "install-radare2" >> "$LOG" 2>&1
+    print_status "INFO" "install-radare2"
     if [[ ! -d ~/src/git/radare2 ]]; then
         print_status "INFO" "Starting installation of radare2."
         sudo apt remove -y radare2 2>&1 | tee -a "$LOG" > /dev/null
@@ -605,7 +626,7 @@ function install-radare2() {
 }
 
 function update-radare2() {
-    echo "update-radare2" >> "$LOG" 2>&1
+    print_status "INFO" "update-radare2"
     if [[ -d ~/src/git/radare2 ]]; then
         sudo apt remove -y radare2 2>&1 | tee -a "$LOG" > /dev/null
         sudo apt-get autoremove -y 2>&1 | tee -a "$LOG" > /dev/null

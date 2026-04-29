@@ -7,8 +7,10 @@
 set -euo pipefail
 IFS=$'\n\t'
 
+SCRIPT_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
+
 if [[ -e ~/.config/.sift ]]; then
-    echo "You have already installed SIFT! Install REMnux in separate VM."
+    printf '\033[0;31mYou have already installed SIFT! Install REMnux in separate VM.\033[0m\n' >&2
     exit 1
 fi
 
@@ -31,14 +33,14 @@ sudo -v
 ####################
 
 # shellcheck source=/dev/null
-if [[ -e  ~/src/bin/dfir-tools/common/bin/utils.sh ]]; then
-    .  ~/src/bin/dfir-tools/common/bin/utils.sh
+if [[ -e "${SCRIPT_DIR}/../common/bin/utils.sh" ]]; then
+    . "${SCRIPT_DIR}/../common/bin/utils.sh"
 else
-    echo "Cant find utils.sh."
+    printf '\033[0;31mCant find utils.sh.\033[0m\n' >&2
     exit 1
 fi
 
-#################### 
+####################
 # Start
 ####################
 
@@ -62,31 +64,27 @@ create-cases-not-mounted
 install-google-chrome
 
 print_status "INFO" "Setup virtualenvwrapper."
-# Use virtualenvwrapper for python tools
-export WORKON_HOME=$HOME/src/python
-export VIRTUALENVWRAPPER_HOOK_DIR=$HOME/src/python/hooks
-# Prevent virtualenvwrapper from failing under 'set -u'
-export ZSH_VERSION=""
+set +u
 # shellcheck source=/dev/null
 source /usr/share/virtualenvwrapper/virtualenvwrapper.sh
+set -u
 
 install-chaosreader
 install-pcodedmp
-
-turn-off-sound
 
 # Install APT packages for REMnux
 install-apt-remnux
 
 # Install aliases for REMnux. This way we can update them without
 # affecting .bash_aliases.
-cp ~/dfir-tools/.remnux_aliases ~/.remnux_aliases
+cp "${SCRIPT_DIR}/.remnux_aliases" ~/.remnux_aliases
 
 CONF_FILE="$HOME/.config/.manual_conf"
 
 # Function to display and save a message
 log_manual() {
-    echo "$1" | tee -a "$CONF_FILE"
+    print_status "WARNING" "$1"
+    echo "$1" >> "$CONF_FILE"
 }
 
 # Check if the configuration file already exists
@@ -103,5 +101,6 @@ if [[ ! -e "$CONF_FILE" ]]; then
     mkdir -p "$(dirname "$CONF_FILE")"
     touch "$CONF_FILE"
 else
-    log_manual "INFO: Update with setup-remnux.sh done."
+    print_status "SUCCESS" "Update with setup-remnux.sh done."
+    echo "Update with setup-remnux.sh done." >> "$CONF_FILE"
 fi
