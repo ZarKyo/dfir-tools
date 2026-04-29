@@ -35,7 +35,6 @@ if [[ $1 == "-h" || $1 == "--help" || $1 == "-l" || $1 == "--list" ]]; then
         grep -v install-utils |
         grep -v install-docker |
         grep -v install-vmware-tools |
-        grep -v turn-off-sound |
         grep -v update-sift |
         grep -v cleanup-sift |
         grep -v cleanup-remnux |
