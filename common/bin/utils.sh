@@ -495,9 +495,11 @@ function update-srum-dump() {
                 sed 's@^refs/remotes/origin/@@')" || default_branch="main"
             git reset --hard "origin/${default_branch}"
         } >> "$LOG" 2>&1
-        pip install --upgrade pip >> "$LOG" 2>&1
-        pip install --upgrade "urllib3[secure]" >> "$LOG" 2>&1
-        pip install --upgrade impacket openpyxl python-registry >> "$LOG" 2>&1
+        {
+            pip install --upgrade pip
+            pip install --upgrade "urllib3[secure]"
+            pip install --upgrade impacket openpyxl python-registry
+        } >> "$LOG" 2>&1
         deactivate || true
         print_status "INFO" "Updated srum-dump."
     fi
