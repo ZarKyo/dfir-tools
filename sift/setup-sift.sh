@@ -73,6 +73,10 @@ set +u
 source /usr/share/virtualenvwrapper/virtualenvwrapper.sh
 set -u
 
+install-didierstevenssuite
+install-srum-dump
+install-oletools
+install-pcodedmp
 install-chaosreader
 install-floss
 install-RecuperaBit

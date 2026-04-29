@@ -1,22 +1,14 @@
-# exa
-#alias ls="exa --group-directories-first"                   # short, multi-line
-#alias ll="exa -l --group-directories-first"                  # list, file metadata as a table
-#alias la="exa -lagh --group-directories-first"                  # list with info
-#alias lt="exa -a --tree --level=2"  # list with tree level 2
-#alias ltf="exa -a --tree"           # list with tree
-#alias lat="exa -lagh --tree"          # list with info and tree
-
 # Utils
 ## File Management
-alias l="exa -ll --group-directories-first $@"
-alias la="l -a $@"
-alias t="l -T $@"
+alias ls="eza --group-directories-first"
+alias ll="ls -l $@"
+alias la="ll -ag $@"
+alias t="ll -T $@"
 alias t2="t -L 2 $@"
 alias t3="t -L 3 $@"
 alias rm='trash-put'
 alias te='trash-empty'
 alias cp='cp -i'
-compdef _files trash-put # fix trash-put file completion
 
 ## Directories
 alias dl='cd ~/Downloads'
@@ -141,3 +133,8 @@ alias hashcat='dockit -w /host dizcza/docker-hashcat:intel-cpu hashcat'
 ## Sysadmin
 alias dsysdig='dockit --privileged -v /var/run/docker.sock:/host/var/run/docker.sock -v /dev:/host/dev -v /proc:/host/proc:ro -v /boot:/host/boot:ro -v /src:/src -v /lib/modules:/host/lib/modules:ro -v /usr:/host/usr:ro -v /etc:/host/etc:ro --entrypoint /usr/bin/sysdig docker.io/sysdig/sysdig --modern-bpf --unbuffer'
 alias dcarbonyl='dockit fathyb/carbonyl' # Chrome in Terminal
+
+# Volatility
+wvol() { echo "/bind"$(printf "%q" "$(realpath ""$1"")"); }
+alias vol3d="sudo docker run --rm -v vol3-cache:/root/.cache/volatility3/ -v /:/bind/ vol3_dck python3 $(wvol ~/vol3/volatility3/vol.py)"
+alias volshell3d="sudo docker run --rm -it -v vol3-cache:/root/.cache/volatility3/ -v /:/bind/ vol3_dck python3 $(wvol ~/vol3/volatility3/volshell.py)"

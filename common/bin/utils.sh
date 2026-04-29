@@ -10,7 +10,7 @@
 set -euo pipefail
 IFS=$'\n\t'
 
-#################### 
+####################
 # Utils
 ####################
 
@@ -39,6 +39,7 @@ print_status() {
     else
         printf "${tclr}%s${NC}\n" "$msg"
     fi
+    [[ -n "${LOG:-}" ]] && printf "[%s] %s\n" "$tag" "$msg" >> "$LOG"
 }
 
 # Check root rights
@@ -47,6 +48,14 @@ function check_root() {
         print_status "ERROR" "This script must be run as root !" >&2
         exit 1
     fi
+}
+
+# Wrapper: disable set -u for virtualenvwrapper commands (mkvirtualenv, workon,
+# setvirtualenvproject, deactivate) which reference unbound vars like ZSH_VERSION.
+function _venv() {
+    set +u
+    "$@" || true
+    set -u
 }
 
 # Checkout git repo to directory
@@ -66,7 +75,7 @@ function update-git-repositories() {
     for repo in *; do
         print_status "INFO" "Updating $repo."
         (
-            cd "$repo" || error-exit-message "Couldn't cd into update-git-repositories"
+            cd "$repo" || { print_status "ERROR" "Couldn't cd into update-git-repositories"; exit 1; }
             git fetch --all >> "$LOG" 2>&1
             default_branch="$(git symbolic-ref refs/remotes/origin/HEAD 2>/dev/null | \
                 sed 's@^refs/remotes/origin/@@')" || default_branch="main"
@@ -194,6 +203,7 @@ function install-general-tools() {
         curl \
         dos2unix \
         exfat-fuse \
+        eza \
         git \
         htop \
         jq \
@@ -210,6 +220,7 @@ function install-general-tools() {
         sqlitebrowser \
         strace \
         tmux \
+        trash-cli \
         tshark \
         vim \
         vim-doc \
@@ -270,7 +281,7 @@ function install-google-chrome() {
     else
         if ! dpkg --status google-chrome-stable > /dev/null 2>&1; then
             print_status "INFO" "Installing Google Chrome."
-            cd /tmp || error-exit-message "Couldn't cd /tmp in install-google-chrome."
+            cd /tmp || { print_status "ERROR" "Couldn't cd /tmp in install-google-chrome."; exit 1; }
             wget https://dl.google.com/linux/direct/google-chrome-stable_current_amd64.deb >> "$LOG" 2>&1
             sudo dpkg -i google-chrome-stable_current_amd64.deb 2>&1 | tee -a "$LOG" > /dev/null || true
             sudo apt -qq -f -y install 2>&1 | tee -a "$LOG" > /dev/null
@@ -303,7 +314,7 @@ function install-volatility() {
 
 function update-volatility() {
     if [[ -d ~/vol3 ]]; then
-        cd ~/vol3 || error-exit-message "Couldn't cd into update-volatility."
+        cd ~/vol3 || { print_status "ERROR" "Couldn't cd into update-volatility."; exit 1; }
         print_status "INFO" "Update volatility3."
         {
             git fetch --all
@@ -319,24 +330,24 @@ function update-volatility() {
 function install-regipy() {
     print_status "INFO" "install-regipy"
     if [[ ! -d ~/.virtualenvs/regipy ]]; then
+        _venv mkvirtualenv regipy
         {
-            mkvirtualenv regipy || true
             pip install --upgrade pip
             pip install "regipy[full]"
         } >> "$LOG" 2>&1
-        deactivate || true
+        _venv deactivate
         print_status "INFO" "Installed regipy."
     fi
 }
 
 function update-regipy() {
     if [[ -d ~/.virtualenvs/regipy ]]; then
-        workon regipy || true
+        _venv workon regipy
         {
             pip install --upgrade pip
             pip install --upgrade "regipy[full]"
         } >> "$LOG" 2>&1
-        deactivate || true
+        _venv deactivate
         print_status "INFO" "Updated regipy."
     fi
 }
@@ -347,7 +358,7 @@ function install-autopsy-docker() {
     if [[ ! -d ~/src/git/Autopsy-docker ]]; then
         print_status "INFO" "Installing Autopsy-docker."
         checkout-git-repo https://github.com/ZarKyo/Autopsy-docker.git Autopsy-docker
-        cd ~/src/git/Autopsy-docker || error-exit-message "Couldn't cd into install-autopsy-docker."
+        cd ~/src/git/Autopsy-docker || { print_status "ERROR" "Couldn't cd into install-autopsy-docker."; exit 1; }
         sudo docker compose build 2>&1 | tee -a "$LOG" > /dev/null || \
             print_status "WARNING" "docker compose build failed — check that docker is installed."
         print_status "INFO" "Installed Autopsy-docker."
@@ -356,7 +367,7 @@ function install-autopsy-docker() {
 
 function update-autopsy-docker() {
     if [[ -d ~/src/git/Autopsy-docker ]]; then
-        cd ~/src/git/Autopsy-docker || error-exit-message "Couldn't cd into update-autopsy-docker."
+        cd ~/src/git/Autopsy-docker || { print_status "ERROR" "Couldn't cd into update-autopsy-docker."; exit 1; }
         {
             git fetch --all
             git reset --hard "origin/$(git symbolic-ref --short refs/remotes/origin/HEAD | sed 's@^origin/@@')"
@@ -437,22 +448,22 @@ function install-RecuperaBit() {
     if [[ ! -d ~/src/python/RecuperaBit ]]; then
         git clone --quiet https://github.com/Lazza/RecuperaBit.git \
             ~/src/python/RecuperaBit >> "$LOG" 2>&1
-        cd ~/src/python/RecuperaBit || error-exit-message "Couldn't cd into install-RecuperaBit."
-        mkvirtualenv RecuperaBit >> "$LOG" 2>&1 || true
+        cd ~/src/python/RecuperaBit || { print_status "ERROR" "Couldn't cd into install-RecuperaBit."; exit 1; }
+        _venv mkvirtualenv RecuperaBit
         {
-            setvirtualenvproject
+            _venv setvirtualenvproject
             pip install --upgrade pip
             pip install --upgrade "urllib3[secure]"
         } >> "$LOG" 2>&1
-        deactivate || true
+        _venv deactivate
         print_status "INFO" "Checked out RecuperaBit."
     fi
 }
 
 function update-RecuperaBit() {
     if [[ -d ~/src/python/RecuperaBit ]]; then
-        workon RecuperaBit || true
-        cd ~/src/python/RecuperaBit || error-exit-message "Couldn't cd into update-RecuperaBit."
+        _venv workon RecuperaBit
+        cd ~/src/python/RecuperaBit || { print_status "ERROR" "Couldn't cd into update-RecuperaBit."; exit 1; }
         {
             git fetch --all
             default_branch="$(git symbolic-ref refs/remotes/origin/HEAD 2>/dev/null | \
@@ -461,7 +472,7 @@ function update-RecuperaBit() {
             pip install --upgrade pip
             pip install --upgrade "urllib3[secure]"
         } >> "$LOG" 2>&1
-        deactivate || true
+        _venv deactivate
         print_status "INFO" "Updated RecuperaBit."
     fi
 }
@@ -472,23 +483,23 @@ function install-srum-dump() {
     if [[ ! -d ~/src/python/srum-dump ]]; then
         git clone --quiet https://github.com/MarkBaggett/srum-dump.git \
             ~/src/python/srum-dump >> "$LOG" 2>&1
-        cd ~/src/python/srum-dump || error-exit-message "Couldn't cd into install-srum-dump."
-        mkvirtualenv srum-dump >> "$LOG" 2>&1 || true
+        cd ~/src/python/srum-dump || { print_status "ERROR" "Couldn't cd into install-srum-dump."; exit 1; }
+        _venv mkvirtualenv srum-dump
         {
-            setvirtualenvproject
+            _venv setvirtualenvproject
             pip install --upgrade pip
             pip install --upgrade "urllib3[secure]"
             pip install impacket openpyxl python-registry
         } >> "$LOG" 2>&1
-        deactivate || true
+        _venv deactivate
         print_status "INFO" "Checked out srum-dump."
     fi
 }
 
 function update-srum-dump() {
     if [[ -d ~/src/python/srum-dump ]]; then
-        workon srum-dump || true
-        cd ~/src/python/srum-dump || error-exit-message "Couldn't cd into update-srum-dump."
+        _venv workon srum-dump
+        cd ~/src/python/srum-dump || { print_status "ERROR" "Couldn't cd into update-srum-dump."; exit 1; }
         {
             git fetch --all
             default_branch="$(git symbolic-ref refs/remotes/origin/HEAD 2>/dev/null | \
@@ -500,7 +511,7 @@ function update-srum-dump() {
             pip install --upgrade "urllib3[secure]"
             pip install --upgrade impacket openpyxl python-registry
         } >> "$LOG" 2>&1
-        deactivate || true
+        _venv deactivate
         print_status "INFO" "Updated srum-dump."
     fi
 }
@@ -512,19 +523,19 @@ function install-didierstevenssuite() {
         {
             git clone --quiet https://github.com/DidierStevens/DidierStevensSuite.git \
                 ~/src/python/didierstevenssuite
-            mkvirtualenv didierstevenssuite || true
-            setvirtualenvproject
         } >> "$LOG" 2>&1
+        _venv mkvirtualenv didierstevenssuite
+        { _venv setvirtualenvproject; } >> "$LOG" 2>&1
         enable-new-didier
-        deactivate || true
+        _venv deactivate
         print_status "INFO" "Checked out DidierStevensSuite."
     fi
 }
 
 function update-didierstevenssuite() {
     if [[ -d ~/src/python/didierstevenssuite ]]; then
-        workon didierstevenssuite || true
-        cd ~/src/python/didierstevenssuite || error-exit-message "Couldn't cd into update-didierstevenssuite."
+        _venv workon didierstevenssuite
+        cd ~/src/python/didierstevenssuite || { print_status "ERROR" "Couldn't cd into update-didierstevenssuite."; exit 1; }
         {
             git fetch --all
             default_branch="$(git symbolic-ref refs/remotes/origin/HEAD 2>/dev/null | \
@@ -532,7 +543,7 @@ function update-didierstevenssuite() {
             git reset --hard "origin/${default_branch}"
         } >> "$LOG" 2>&1
         enable-new-didier
-        deactivate || true
+        _venv deactivate
         print_status "INFO" "Updated DidierStevensSuite."
     fi
 }
@@ -541,8 +552,8 @@ function update-didierstevenssuite() {
 function install-oletools() {
     print_status "INFO" "install-oletools"
     if [[ ! -d ~/.virtualenvs/oletools ]]; then
+        _venv mkvirtualenv oletools
         {
-            mkvirtualenv oletools || true
             pip install --upgrade pip
             pip install --upgrade "urllib3[secure]"
             pip install oletools
@@ -553,7 +564,7 @@ function install-oletools() {
 
 function update-oletools() {
     if [[ -d ~/.virtualenvs/oletools ]]; then
-        workon oletools || true
+        _venv workon oletools
         pip install --upgrade pip >> "$LOG" 2>&1
         pip install --upgrade oletools >> "$LOG" 2>&1
         print_status "INFO" "Updated oletools."
@@ -566,29 +577,29 @@ function install-pcodedmp() {
     if [[ ! -d ~/src/python/pcodedmp ]]; then
         git clone --quiet https://github.com/bontchev/pcodedmp.git \
             ~/src/python/pcodedmp >> "$LOG" 2>&1
-        cd ~/src/python/pcodedmp || error-exit-message "Couldn't cd into install-pcodedmp."
+        cd ~/src/python/pcodedmp || { print_status "ERROR" "Couldn't cd into install-pcodedmp."; exit 1; }
+        _venv mkvirtualenv pcodedmp
         {
-            mkvirtualenv pcodedmp || true
-            setvirtualenvproject
+            _venv setvirtualenvproject
             pip install --upgrade pip setuptools
             pip install oletools
         } >> "$LOG" 2>&1
-        deactivate || true
+        _venv deactivate
         print_status "INFO" "Installed pcodedmp."
     fi
 }
 
 function update-pcodedmp() {
     if [[ -d ~/src/python/pcodedmp ]]; then
-        workon pcodedmp || true
-        cd ~/src/python/pcodedmp || error-exit-message "Couldn't cd into update-pcodedmp."
+        _venv workon pcodedmp
+        cd ~/src/python/pcodedmp || { print_status "ERROR" "Couldn't cd into update-pcodedmp."; exit 1; }
         {
             git fetch --all
             default_branch="$(git symbolic-ref refs/remotes/origin/HEAD 2>/dev/null | \
                 sed 's@^refs/remotes/origin/@@')" || default_branch="main"
             git reset --hard "origin/${default_branch}"
         } >> "$LOG" 2>&1
-        deactivate || true
+        _venv deactivate
         print_status "INFO" "Updated pcodedmp."
     fi
 }
@@ -620,9 +631,9 @@ function install-radare2() {
         sudo apt remove -y radare2 2>&1 | tee -a "$LOG" > /dev/null
         sudo apt-get autoremove -y 2>&1 | tee -a "$LOG" > /dev/null
         checkout-git-repo https://github.com/radare/radare2.git radare2
-        cd ~/src/git/radare2 || error-exit-message "Couldn't cd into install-radare2."
+        cd ~/src/git/radare2 || { print_status "ERROR" "Couldn't cd into install-radare2."; exit 1; }
         make clean >> "$LOG" 2>&1 || true
-        ./sys/install.sh >> "$LOG" 2>&1 || error-message "./sys/install.sh failed!"
+        ./sys/install.sh >> "$LOG" 2>&1 || print_status "ERROR" "./sys/install.sh failed!"
         print_status "INFO" "Installed radare2."
     fi
 }
@@ -632,7 +643,7 @@ function update-radare2() {
     if [[ -d ~/src/git/radare2 ]]; then
         sudo apt remove -y radare2 2>&1 | tee -a "$LOG" > /dev/null
         sudo apt-get autoremove -y 2>&1 | tee -a "$LOG" > /dev/null
-        cd ~/src/git/radare2 || error-exit-message "Couldn't cd into update-radare2."
+        cd ~/src/git/radare2 || { print_status "ERROR" "Couldn't cd into update-radare2."; exit 1; }
         {
             git fetch --all
             git reset --hard origin/master
@@ -657,9 +668,9 @@ function install-sift() {
             else
                 ARCH="arm64"
             fi
-            wget "$(curl -s https://api.github.com/repos/ekristen/cast/releases/latest | jq . | 
+            wget "$(curl -s https://api.github.com/repos/ekristen/cast/releases/latest | jq . |
                 grep 'browser_' | grep deb | grep -v deb.sig | grep "$ARCH" | cut -d\" -f4 | head -1)"
-            wget "$(curl -s https://api.github.com/repos/ekristen/cast/releases/latest | jq . | 
+            wget "$(curl -s https://api.github.com/repos/ekristen/cast/releases/latest | jq . |
                 grep 'browser_' | grep deb | grep -v deb.sig | grep "$ARCH" | cut -d\" -f4 | tail -1)"
         } >> "$LOG" 2>&1
         # Does not validate gpg at the moment due to problems downloading keys in some networks...

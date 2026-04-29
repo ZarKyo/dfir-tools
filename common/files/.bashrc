@@ -133,5 +133,7 @@ function bin-to-dec(){
 }
 
 export PATH=$HOME/bin:$HOME/src/bin:$HOME/src/python/didierstevenssuite:$PATH
+export WORKON_HOME=$HOME/.virtualenvs
+export PROJECT_HOME="$HOME"/src/python
 # shellcheck source=/dev/null
 source /usr/share/virtualenvwrapper/virtualenvwrapper.sh
