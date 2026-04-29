@@ -143,7 +143,7 @@ function create-common-directories() {
         xfs
     )
     for dir in "${mnt_dirs[@]}"; do
-        mkdir -p "/mnt/$dir"
+        sudo mkdir -p "/mnt/$dir"
     done
 
     print_status "SUCCESS" "Directory structure created."
@@ -678,8 +678,6 @@ function cleanup-sift() {
     if [[ -e ~/Desktop/SIFT-Cheatsheet.pdf ]]; then
         print_status "INFO" "Clean Desktop."
         [ ! -d ~/Documents/SIFT ] && mkdir -p ~/Documents/SIFT
-        sudo chown "$VM_USER":"$VM_USER" ~/Desktop
-        sudo chown "$VM_USER":"$VM_USER" ~/Desktop/*.pdf
         mv ~/Desktop/*.pdf ~/Documents/SIFT/ || true
         [ ! -e ~/Desktop/SIFT ] && ln -s ~/Documents/SIFT ~/Desktop/SIFT
     fi

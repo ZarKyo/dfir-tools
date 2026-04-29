@@ -52,8 +52,10 @@ install-vmware-tools
 install-utils
 install-docker
 
+set +e
 install-sift
 cleanup-sift
+set -e
 
 create-common-directories
 create-docker-directories
