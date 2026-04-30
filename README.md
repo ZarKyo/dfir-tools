@@ -66,6 +66,12 @@ make dotfiles
 
 Copies `common/files/.bashrc`, `.vimrc`, and `.bash_aliases` to `~/`.
 
+## Lint
+
+```bash
+make test   # shellcheck on all scripts → checkstyle.out
+```
+
 ---
 
 ## Thanks to
