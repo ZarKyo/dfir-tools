@@ -40,10 +40,10 @@ cd ~/dfir-tools
 - Installs `open-vm-tools-desktop` for VMware
 - Installs REMnux via `remnux install`
 - Installs Google Chrome
-- Sets up Python virtualenvwrapper
+- Sets up Python virtualenvwrapper with isolated environments
 - Installs additional tools: chaosreader, pcodedmp, sleuthkit, testdisk
 - Deploys REMnux aliases to `~/.remnux_aliases`
-- Applies GNOME preferences
+- Applies GNOME preferences (dark theme, 24h clock, dock config)
 - Runs `make dotfiles`
 
 ### `make install-dfir`

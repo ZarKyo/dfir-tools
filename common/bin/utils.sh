@@ -211,6 +211,7 @@ function install-general-tools() {
         libimage-exiftool-perl \
         libncurses5-dev \
         libssl-dev \
+        make \
         p7zip \
         python3-dev \
         python3-virtualenv \
@@ -748,14 +749,14 @@ function install-apt-remnux() {
 function install-remnux() {
     if [[ ! -e ~/.config/.remnux ]]; then
         print_status "INFO" "Start installation of REMnux."
-        rm -f remnux-cli
-        wget --quiet https://REMnux.org/remnux-cli
-        mv remnux-cli remnux
+        rm -f remnux
+        wget --quiet https://REMnux.org/remnux
+        mv remnux remnux
         chmod +x remnux
         sudo mv remnux /usr/local/bin
         sudo apt install -y gnupg
         sudo systemctl stop ssh.service
-        sudo /usr/local/bin/remnux install
+        sudo /usr/local/bin/remnux install --version=v2026.6.24 --mode=dedicated 2>&1 | tee -a "$LOG"
         sudo systemctl start ssh.service
         touch ~/.config/.remnux
         print_status "INFO" "REMnux installation finished."
