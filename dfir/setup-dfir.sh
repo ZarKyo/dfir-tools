@@ -29,7 +29,7 @@ bash "$SCRIPT_DIR/../sift/setup-sift.sh"
 print_status "INFO" "Adding REMnux as addon on top of SIFT."
 
 if [[ ! -e /usr/local/bin/remnux ]]; then
-    wget --quiet https://REMnux.org/remnux-cli -O /tmp/remnux-cli
+    wget --quiet https://REMnux.org/remnux -O /tmp/remnux-cli
     chmod +x /tmp/remnux-cli
     sudo mv /tmp/remnux-cli /usr/local/bin/remnux
     sudo apt install -y gnupg
