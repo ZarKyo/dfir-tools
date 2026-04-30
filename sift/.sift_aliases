@@ -6,7 +6,10 @@ alias urlencode='python -c "import sys, urllib as ul; \
 # shellcheck disable=SC1004
 alias urldecode='python -c "import sys, urllib as ul; \
     print ul.unquote_plus(sys.argv[1])"'
-alias cases-mount="sudo mount -t vmhgfs .host:/$(vmware-hgfsclient) /cases"
-alias cases-umount="sudo umount /cases"
 alias chrome="google-chrome-stable"
 alias rot13="tr 'A-Za-z' 'N-ZA-Mn-za-m'"
+
+# Mount
+alias mountwin='mount -o ro,loop,show_sys_files,streams_interface=windows'
+alias cases-mount="sudo mount -t vmhgfs .host:/$(vmware-hgfsclient) /cases"
+alias cases-umount="sudo umount /cases"

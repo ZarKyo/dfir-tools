@@ -134,7 +134,7 @@ alias hashcat='dockit -w /host dizcza/docker-hashcat:intel-cpu hashcat'
 alias dsysdig='dockit --privileged -v /var/run/docker.sock:/host/var/run/docker.sock -v /dev:/host/dev -v /proc:/host/proc:ro -v /boot:/host/boot:ro -v /src:/src -v /lib/modules:/host/lib/modules:ro -v /usr:/host/usr:ro -v /etc:/host/etc:ro --entrypoint /usr/bin/sysdig docker.io/sysdig/sysdig --modern-bpf --unbuffer'
 alias dcarbonyl='dockit fathyb/carbonyl' # Chrome in Terminal
 
-# Volatility
+## Volatility
 wvol() { echo "/bind"$(printf "%q" "$(realpath ""$1"")"); }
 alias vol3d="sudo docker run --rm -v vol3-cache:/root/.cache/volatility3/ -v /:/bind/ vol3_dck python3 $(wvol ~/vol3/volatility3/vol.py)"
 alias volshell3d="sudo docker run --rm -it -v vol3-cache:/root/.cache/volatility3/ -v /:/bind/ vol3_dck python3 $(wvol ~/vol3/volatility3/volshell.py)"

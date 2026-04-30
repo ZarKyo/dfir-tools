@@ -77,11 +77,11 @@ install-didierstevenssuite
 install-srum-dump
 install-oletools
 install-pcodedmp
+install-regipy
+install-RecuperaBit
 install-chaosreader
 install-floss
-install-RecuperaBit
 install-volatility
-install-regipy
 install-autopsy-docker
 
 # Install aliases for SIFT. This way we can update them without
