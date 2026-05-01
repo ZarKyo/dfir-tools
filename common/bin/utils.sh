@@ -616,15 +616,8 @@ function install-regripper() {
         git clone --quiet https://github.com/keydet89/RegRipper4.0.git \
             ~/src/git/RegRipper4.0 >> "$LOG" 2>&1
         print_status "INFO" "Checked out RegRipper4.0."
-        # dfir-tools is at ~/src/bin/dfir-tools when run via packer, ~/dfir-tools standalone
-        local dfir_tools_dir
-        if [[ -d ~/src/bin/dfir-tools ]]; then
-            dfir_tools_dir=~/src/bin/dfir-tools
-        else
-            dfir_tools_dir=~/dfir-tools
-        fi
-        chmod 755 "${dfir_tools_dir}/common/files/regripper"
-        ln -sf "${dfir_tools_dir}/common/files/regripper" ~/src/bin/regripper
+        chmod 755 "~/src/git/dfir-tools/common/files/regripper"
+        ln -sf "~/src/git/dfir-tools/common/files/regripper" ~/src/bin/regripper
     fi
 }
 

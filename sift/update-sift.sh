@@ -27,8 +27,8 @@ touch $LOG
 sudo -v
 
 # shellcheck source=/dev/null
-if [[ -e  ~/src/bin/dfir-tools/common/bin/utils.sh ]]; then
-    .  ~/src/bin/dfir-tools/common/bin/utils.sh
+if [[ -e  ~/src/git/dfir-tools/common/bin/utils.sh ]]; then
+    .  ~/src/git/dfir-tools/common/bin/utils.sh
 else
     printf '\033[0;31mCant find utils.sh.\033[0m\n' >&2
     exit 1

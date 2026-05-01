@@ -10,8 +10,9 @@ Clone the repository and use `make` to run the desired installer:
 
 ```bash
 sudo apt-get install -y git
-git clone https://github.com/ZarKyo/dfir-tools.git ~/dfir-tools
-cd ~/dfir-tools
+mkdir ~/src/git/
+git clone https://github.com/ZarKyo/dfir-tools.git ~/src/git/dfir-tools
+cd ~/src/git/dfir-tools
 ```
 
 | Target | Command | Description |

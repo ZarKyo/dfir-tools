@@ -94,7 +94,7 @@ if [[ ! -e "$CONF_FILE" ]]; then
     log_manual "1. Change desktop resolution to be able to do the other steps."
     log_manual "2. Security & Privacy -> Search -> Turn off online search results."
     log_manual "3. -> Diagnostics -> Turn off error reports."
-    log_manual "4. Run 'make dotfiles' in ~/dfir-tools for .bashrc etc."
+    log_manual "4. Run 'make dotfiles' in ~/src/git/dfir-tools for .bashrc etc."
     log_manual "##################################################################"
 
     # Create the config file to avoid repeating this block
