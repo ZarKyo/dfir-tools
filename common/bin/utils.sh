@@ -616,8 +616,8 @@ function install-regripper() {
         git clone --quiet https://github.com/keydet89/RegRipper4.0.git \
             ~/src/git/RegRipper4.0 >> "$LOG" 2>&1
         print_status "INFO" "Checked out RegRipper4.0."
-        chmod 755 "~/src/git/dfir-tools/common/files/regripper"
-        ln -sf "~/src/git/dfir-tools/common/files/regripper" ~/src/bin/regripper
+        chmod 755 "$HOME/src/git/dfir-tools/common/files/regripper"
+        ln -sf "$HOME/src/git/dfir-tools/common/files/regripper" ~/src/bin/regripper
     fi
 }
 
