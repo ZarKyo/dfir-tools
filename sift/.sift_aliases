@@ -1,3 +1,5 @@
+# shellcheck shell=bash
+
 alias private="/usr/bin/curl http://icanhazip.com"
 alias zerodisk="dd if=/dev/zero of=zero; sync; rm -f zero"
 # shellcheck disable=SC1004
@@ -11,5 +13,7 @@ alias rot13="tr 'A-Za-z' 'N-ZA-Mn-za-m'"
 
 # Mount
 alias mountwin='mount -o ro,loop,show_sys_files,streams_interface=windows'
-alias cases-mount="sudo mount -t vmhgfs .host:/$(vmware-hgfsclient) /cases"
+# A function, not an alias: the share name must be queried when the command is
+# run, not when this file is sourced.
+cases-mount() { sudo mount -t vmhgfs ".host:/$(vmware-hgfsclient)" /cases; }
 alias cases-umount="sudo umount /cases"

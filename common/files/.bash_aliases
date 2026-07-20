@@ -1,11 +1,13 @@
+# shellcheck shell=bash
+
 # Utils
 ## File Management
 alias ls="eza --group-directories-first"
-alias ll="ls -l $@"
-alias la="ll -ag $@"
-alias t="ll -T $@"
-alias t2="t -L 2 $@"
-alias t3="t -L 3 $@"
+alias ll="ls -l"
+alias la="ll -ag"
+alias t="ll -T"
+alias t2="t -L 2"
+alias t3="t -L 3"
 alias rm='trash-put'
 alias te='trash-empty'
 alias cp='cp -i'
@@ -21,14 +23,14 @@ alias C='code .'
 alias p='python'
 alias tmp='pushd $(mktemp -d)'
 # Trick to have ALL aliases available with sudo <3
-alias sudo='sudo ' 
+alias sudo='sudo '
 alias ..="cd ../"
 alias ....="cd ../../"
 alias ......="cd ../../../"
 alias ........="cd ../../../../"
 
 ## Git
-gic() { 
+gic() {
   git add .
   git commit -a -m "$*"
   git push
@@ -48,7 +50,7 @@ alias ncl='ncat -lnvp'
 alias ssh-yolo='ssh -o UserKnownHostsFile=/dev/null -o StrictHostKeyChecking=no'
 alias wifi-nmtui='nmtui'
 alias wget-yolo="wget --no-check-certificate"
-alias digall='f(){ dig +answer +multiline "$1" any @8.8.8.8;  unset -f f; }; f'
+digall() { dig +answer +multiline "$1" any @8.8.8.8; }
 alias ipv6-disable='sudo sysctl -w net.ipv6.conf.all.disable_ipv6=1; sudo sysctl -w net.ipv6.conf.default.disable_ipv6=1; sudo sysctl -w net.ipv6.conf.lo.disable_ipv6=1'
 alias ipv6-enable='sudo sysctl -w net.ipv6.conf.all.disable_ipv6=0; sudo sysctl -w net.ipv6.conf.default.disable_ipv6=0; sudo sysctl -w net.ipv6.conf.lo.disable_ipv6=0'
 alias dns-127='echo "nameserver 127.0.0.1" | sudo tee /etc/resolv.conf'
@@ -69,13 +71,13 @@ alias show-open-ports="sudo ss -latepun | grep -i listen"
 alias sop='show-open-ports'
 alias get-du='du -ch -d 1'
 alias get-pid-click='xprop _NET_WM_PID | cut -d" " -f3'
-alias get-pid-ps='ps fauxw | fzf | awk "{ print \$2}"'
+get-pid-ps() { ps fauxw | fzf | awk '{ print $2 }'; }
 alias get-shell-size='echo "stty rows $LINES cols $COLUMNS"'
 alias dirmon='inotifywait -rm -e create -e moved_to -e modify -e access -e attrib -e close_write -e moved_from'
 alias killit='sudo kill -KILL'
 
 ## Misc
-alias usleep='f(){ python3 -c "import time; time.sleep($1)";  unset -f f; }; f'
+usleep() { python3 -c "import time; time.sleep($1)"; }
 alias vplay='mplayer -nosound'
 alias b64d='base64 -d'
 alias b64e='base64 -w 0'
@@ -83,8 +85,18 @@ alias cgrep='grep --color=always'
 alias clean-swap='sudo swapoff -a && sudo swapon -a'
 alias cpy='xclip -selection clipboard'
 alias paste='xclip -selection clipboard -o'
-alias lbt-keyboard-layout='f(){ gsettings set org.gnome.desktop.input-sources sources "[(\"xkb\", \"$1\")]" ;  unset -f f; }; f'
-alias encrypt='f(){ PASS=$(cat /dev/urandom | base64 | head -c 20) && echo "$PASS" | xclip -selection c && tar -zcvf "$1.tar.gz" "$1" && echo "$PASS" && mcrypt "$1.tar.gz" && echo "$1.tar.gz $PASS" | xclip -selection c;  unset -f f; }; f'
+lbt-keyboard-layout() {
+    gsettings set org.gnome.desktop.input-sources sources "[('xkb', '$1')]"
+}
+encrypt() {
+    local pass
+    pass="$(base64 < /dev/urandom | head -c 20)" || return 1
+    echo "$pass" | xclip -selection c
+    tar -zcvf "$1.tar.gz" "$1" || return 1
+    echo "$pass"
+    mcrypt "$1.tar.gz" || return 1
+    echo "$1.tar.gz $pass" | xclip -selection c
+}
 alias decrypt='mdecrypt'
 alias get-badchars='echo -e "\x22\x27<?>][]{}_)(*;/\x5c"'
 alias get-bytes-hex='python3 -c "for i in range(0,256): print(hex(i))"'
@@ -98,15 +110,17 @@ alias urldecode='python3 -c "import sys, urllib as ul; \
 # Sysadmin
 alias aptitall='sudo apt update && sudo apt upgrade -y && sudo apt autoremove -y && sudo apt clean -y && sudo apt purge -y'
 alias dpkgi='sudo dpkg -i'
-alias tmux-bg='f(){ tmux new-window -d zsh -c "echo $@; $@; zsh";  unset -f f; }; f'
-alias tmux-split='f(){ tmux split-window -d zsh -c "echo $@; $@; zsh";  unset -f f; }; f'
+tmux-bg() { tmux new-window -d zsh -c "echo $*; $*; zsh"; }
+tmux-split() { tmux split-window -d zsh -c "echo $*; $*; zsh"; }
 alias pserv='python3 -m http.server'
 
 # Recon
-alias get-pass-info='f(){ xdg-open "https://cirt.net/passwords?criteria=$@" ;  unset -f f; }; f'
-alias recon-virustotal='f(){ xdg-open "https://www.virustotal.com/gui/domain/$1" ;  unset -f f; }; f'
-alias recon-crtsh='f(){ curl -sk "https://crt.sh/json?q=$1" | jq . ; unset -f f; }; f'
-alias recon-wayback='f(){ curl -sk "https://web.archive.org/cdx/search/cdx?fl=original&collapse=urlkey&url=*.$1" ; unset -f f; }; f'
+get-pass-info() { xdg-open "https://cirt.net/passwords?criteria=$*"; }
+recon-virustotal() { xdg-open "https://www.virustotal.com/gui/domain/$1"; }
+recon-crtsh() { curl -sk "https://crt.sh/json?q=$1" | jq .; }
+recon-wayback() {
+    curl -sk "https://web.archive.org/cdx/search/cdx?fl=original&collapse=urlkey&url=*.$1"
+}
 
 # Docker Utils
 alias dockit='docker run --rm -it -v /tmp:/tmp -v "$PWD":/uhost -w /uhost'
@@ -135,6 +149,14 @@ alias dsysdig='dockit --privileged -v /var/run/docker.sock:/host/var/run/docker.
 alias dcarbonyl='dockit fathyb/carbonyl' # Chrome in Terminal
 
 ## Volatility
-wvol() { echo "/bind"$(printf "%q" "$(realpath ""$1"")"); }
-alias vol3d="sudo docker run --rm -v vol3-cache:/root/.cache/volatility3/ -v /:/bind/ vol3_dck python3 $(wvol ~/vol3/volatility3/vol.py)"
-alias volshell3d="sudo docker run --rm -it -v vol3-cache:/root/.cache/volatility3/ -v /:/bind/ vol3_dck python3 $(wvol ~/vol3/volatility3/volshell.py)"
+wvol() { echo "/bind$(printf '%q' "$(realpath "$1")")"; }
+# Functions rather than aliases: the path is resolved when the command is run,
+# not when this file is sourced, so it works even if ~/vol3 appears later.
+vol3d() {
+    sudo docker run --rm -v vol3-cache:/root/.cache/volatility3/ -v /:/bind/ \
+        vol3_dck python3 "$(wvol ~/vol3/volatility3/vol.py)" "$@"
+}
+volshell3d() {
+    sudo docker run --rm -it -v vol3-cache:/root/.cache/volatility3/ -v /:/bind/ \
+        vol3_dck python3 "$(wvol ~/vol3/volatility3/volshell.py)" "$@"
+}

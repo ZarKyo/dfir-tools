@@ -94,6 +94,7 @@ function setup-shared-dirs() {
         {
             printf '# Set by dfir-tools.\n'
             printf 'export WORKON_HOME=%s\n' "${WORKON_HOME}"
+            # shellcheck disable=SC2016  # $PATH must stay literal in the generated file
             printf 'export PATH="$PATH:%s/didierstevenssuite"\n' "${DFIR_SRC}"
         } | sudo tee /etc/profile.d/dfir-tools.sh > /dev/null
         sudo chmod 0644 /etc/profile.d/dfir-tools.sh

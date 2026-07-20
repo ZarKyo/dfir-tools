@@ -1,3 +1,5 @@
+# shellcheck shell=bash
+
 alias docker-remnux-v8='sudo docker run --rm -it -v ~/docker/v8:/home/nonroot/files remnux/v8 bash'
 alias docker-remnux-radare2="sudo docker run --rm -it -v ~/docker/radare2:/home/nonroot/workdir remnux/radare2 bash"
 alias docker-radare-radare2="sudo docker run --rm -it -v ~/docker/radare2:/home/nonroot/workdir radare/radare2 bash"
@@ -17,7 +19,8 @@ alias urlencode='python -c "import sys, urllib as ul; \
 # shellcheck disable=SC1004
 alias urldecode='python -c "import sys, urllib as ul; \
     print ul.unquote_plus(sys.argv[1])"'
-alias cases-mount="sudo mount -t vmhgfs .host:/$(vmware-hgfsclient) /cases"
+# A function, not an alias: the share name must be queried when the command is
+# run, not when this file is sourced.
+cases-mount() { sudo mount -t vmhgfs ".host:/$(vmware-hgfsclient)" /cases; }
 alias cases-umount="sudo umount /cases"
-alias SSMA=". ~/src/python/SSMA-env/bin/activate"
 alias rot13="tr 'A-Za-z' 'N-ZA-Mn-za-m'"
