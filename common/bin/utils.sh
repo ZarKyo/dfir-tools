@@ -401,26 +401,36 @@ function install-pi-rho-security() {
 }
 
 # https://github.com/brendangregg/Chaosreader
+# Installed to /usr/local/bin, not ~/src/bin: a binary living in a home
+# directory belongs to that user only, and is lost when the machine is turned
+# into an image (the installer creates a brand-new user). /usr/local/bin is
+# part of the default PATH, so no shell configuration is needed.
 function install-chaosreader() {
     print_status "INFO" "install-chaosreader"
-    if [[ ! -e ~/src/bin/chaosreader ]]; then
-        wget -q -O ~/src/bin/chaosreader \
+    if [[ ! -e /usr/local/bin/chaosreader ]]; then
+        local tmpdir
+        tmpdir="$(mktemp -d)"
+        wget -q -O "${tmpdir}/chaosreader" \
             https://raw.githubusercontent.com/brendangregg/Chaosreader/master/chaosreader >> "$LOG" 2>&1
-        chmod +x ~/src/bin/chaosreader
+        sudo install -m 755 -o root -g root "${tmpdir}/chaosreader" /usr/local/bin/chaosreader
+        rm -rf "${tmpdir}"
         print_status "INFO" "Installed chaosreader."
     fi
+    # Legacy location, from before the move to /usr/local/bin.
+    rm -f ~/src/bin/chaosreader
 }
 
 function update-chaosreader() {
     print_status "INFO" "Update chaosreader."
-    rm -f ~/src/bin/chaosreader
+    sudo rm -f /usr/local/bin/chaosreader
     install-chaosreader
 }
 
 # https://github.com/mandiant/flare-floss
+# Installed to /usr/local/bin — same reason as chaosreader above.
 function install-floss() {
     print_status "INFO" "install-floss"
-    if [[ ! -e ~/src/bin/floss ]]; then
+    if [[ ! -e /usr/local/bin/floss ]]; then
         local url tmpdir
         url="$(curl -s https://api.github.com/repos/mandiant/flare-floss/releases/latest | \
             jq -r '.assets[] | select(.name | test("linux"; "i")) | .browser_download_url' | head -1)"
@@ -432,18 +442,20 @@ function install-floss() {
         wget -q -O "${tmpdir}/floss_dl" "$url" >> "$LOG" 2>&1
         if file "${tmpdir}/floss_dl" | grep -q -i 'zip'; then
             unzip -q "${tmpdir}/floss_dl" -d "${tmpdir}" >> "$LOG" 2>&1
-            install -m 755 "${tmpdir}/floss" ~/src/bin/floss
+            sudo install -m 755 -o root -g root "${tmpdir}/floss" /usr/local/bin/floss
         else
-            install -m 755 "${tmpdir}/floss_dl" ~/src/bin/floss
+            sudo install -m 755 -o root -g root "${tmpdir}/floss_dl" /usr/local/bin/floss
         fi
         rm -rf "${tmpdir}"
         print_status "INFO" "Installed floss."
     fi
+    # Legacy location, from before the move to /usr/local/bin.
+    rm -f ~/src/bin/floss
 }
 
 function update-floss() {
     print_status "INFO" "Update floss."
-    rm -f ~/src/bin/floss
+    sudo rm -f /usr/local/bin/floss
     install-floss
 }
 
@@ -707,12 +719,34 @@ function cleanup-sift() {
         print_status "INFO" "Clean up folders and files."
         rm -f ~/examples.desktop
     fi
+    # The SIFT posters and cheat sheets are reference material, not user data:
+    # they belong to the system, not to one account. Kept in /usr/local/share
+    # so they survive imaging, with symlinks providing the familiar
+    # ~/Documents/SIFT and ~/Desktop/SIFT entries.
+    local docs=/usr/local/share/sift-docs
+
     if [[ -e ~/Desktop/SIFT-Cheatsheet.pdf ]]; then
         print_status "INFO" "Clean Desktop."
-        [ ! -d ~/Documents/SIFT ] && mkdir -p ~/Documents/SIFT
-        mv ~/Desktop/*.pdf ~/Documents/SIFT/ || true
-        [ ! -e ~/Desktop/SIFT ] && ln -s ~/Documents/SIFT ~/Desktop/SIFT
+        sudo install -d -m 755 -o root -g root "$docs"
+        sudo install -m 644 -o root -g root ~/Desktop/*.pdf "$docs"/ || true
+        rm -f ~/Desktop/*.pdf
     fi
+
+    # Migrate an existing install: ~/Documents/SIFT used to be a real directory.
+    if [[ -d ~/Documents/SIFT && ! -L ~/Documents/SIFT ]]; then
+        print_status "INFO" "Move SIFT documents to $docs."
+        sudo install -d -m 755 -o root -g root "$docs"
+        sudo install -m 644 -o root -g root ~/Documents/SIFT/*.pdf "$docs"/ || true
+        rm -rf ~/Documents/SIFT
+    fi
+
+    if [[ -d $docs ]]; then
+        mkdir -p ~/Documents
+        [[ ! -e ~/Documents/SIFT ]] && ln -s "$docs" ~/Documents/SIFT
+        [[ -L ~/Desktop/SIFT ]] && rm -f ~/Desktop/SIFT
+        [[ ! -e ~/Desktop/SIFT ]] && ln -s "$docs" ~/Desktop/SIFT
+    fi
+    return 0
 }
 
 function remove-old() {
