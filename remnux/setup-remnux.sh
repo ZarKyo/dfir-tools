@@ -25,8 +25,12 @@ export VM_USER=user
 export LOG=/tmp/remnux.log
 touch $LOG
 
-# Force sudo password prompt early
-sudo -v
+# Ask for the sudo password once, up front. Not `sudo -v`: see the comment in
+# sift/setup-sift.sh — verifypw defaults to `all`, so -v prompts even under
+# NOPASSWD:ALL and fails outright when there is no TTY.
+if ! sudo -n true 2>/dev/null; then
+    sudo true
+fi
 
 #################### 
 # Source

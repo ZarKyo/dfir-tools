@@ -10,8 +10,12 @@ export DEBIAN_FRONTEND=noninteractive
 export LOG=/tmp/dfir.log
 touch "$LOG"
 
-# Make a fake sudo to get password before output
-sudo -v
+# Ask for the sudo password once, up front. Not `sudo -v`: see the comment in
+# sift/setup-sift.sh — verifypw defaults to `all`, so -v prompts even under
+# NOPASSWD:ALL and fails outright when there is no TTY.
+if ! sudo -n true 2>/dev/null; then
+    sudo true
+fi
 
 # shellcheck source=/dev/null
 if [[ -e  ~/src/git/dfir-tools/common/bin/utils.sh ]]; then
