@@ -54,9 +54,10 @@ sudo /usr/bin/freshclam || print_status "INFO" "Update of clamav database failed
 update-ubuntu
 
 print_status "INFO" "Update virtualenvwrapper."
-# Use virtualenvwrapper for python tools
-export WORKON_HOME=$HOME/src/python
-export VIRTUALENVWRAPPER_HOOK_DIR=$HOME/src/python/hooks
+# WORKON_HOME comes from utils.sh, which defines it once for the whole
+# toolchain. Setting it here would point `workon` at a different location than
+# the one the install used.
+export VIRTUALENVWRAPPER_HOOK_DIR="${WORKON_HOME}"/hooks
 set +u
 # shellcheck source=/dev/null
 source /usr/share/virtualenvwrapper/virtualenvwrapper.sh

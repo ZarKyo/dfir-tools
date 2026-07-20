@@ -26,17 +26,14 @@ export LOG=/tmp/sift.log
 touch $LOG
 
 # Ask for the sudo password once, up front, rather than in the middle of a long
-# install.
+# install. `sudo -n true` probes non-interactively and stays silent when sudo
+# needs no password, so a prompt only appears when there is really one to enter
+# — which keeps this working under an automated build, where there is no TTY.
 #
-# Not `sudo -v`: sudoers(5) verifypw defaults to `all`, meaning EVERY sudoers
-# entry matching the user must carry NOPASSWD for -v to skip the prompt. A user
-# in the `sudo` group always also matches `%sudo ALL=(ALL:ALL) ALL`, so `sudo -v`
-# prompts even when NOPASSWD:ALL is set for that user. Under an automated build
-# (Packer over SSH) there is no TTY, so it fails outright with
-# "sudo: a terminal is required to read the password" and aborts the install.
-#
-# `sudo -n true` is the non-interactive probe: silent when sudo needs no
-# password, so we only prompt when there really is one to enter.
+# `sudo -v` cannot be used for this: sudoers(5) verifypw defaults to `all`,
+# meaning every entry matching the user must carry NOPASSWD for -v to skip the
+# prompt. A user in the `sudo` group also matches `%sudo ALL=(ALL:ALL) ALL`, so
+# -v prompts even under NOPASSWD:ALL and fails outright without a TTY.
 if ! sudo -n true 2>/dev/null; then
     sudo true
 fi

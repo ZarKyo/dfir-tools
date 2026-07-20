@@ -62,18 +62,56 @@ function _venv() {
     set -u
 }
 
+# System-wide locations for the DFIR tools: Python virtualenvs, and the source
+# checkouts of the tools that run from their working tree.
+#
+# Both live outside any home directory so that they belong to the machine and
+# survive imaging, where the installer creates a brand-new user. A virtualenv
+# additionally hard-codes absolute paths (script shebangs, VIRTUAL_ENV in
+# bin/activate) and cannot be relocated afterwards, so WORKON_HOME has to be
+# set before any mkvirtualenv call — hence its definition here, at source time.
+export WORKON_HOME="${WORKON_HOME_OVERRIDE:-/opt/dfir-venvs}"
+export DFIR_SRC="${DFIR_SRC_OVERRIDE:-/opt/dfir-src}"
+
+# Create the shared locations and make WORKON_HOME the machine-wide default.
+function setup-shared-dirs() {
+    local dir
+    for dir in "${WORKON_HOME}" "${DFIR_SRC}"; do
+        if [[ ! -d ${dir} ]]; then
+            print_status "INFO" "Create ${dir}."
+            # Owned by root, group `sudo`, setgid and group-writable: pip,
+            # mkvirtualenv and git keep working as a normal user, which the
+            # install flow needs (a virtualenv must be activated in the
+            # *current* shell, so it cannot be created under sudo). Members of
+            # `sudo` can already become root, so this grants nothing new.
+            sudo install -d -m 2775 -o root -g sudo "${dir}"
+        fi
+    done
+
+    # Applies to every user of the installed image, not just this one.
+    if [[ ! -e /etc/profile.d/dfir-tools.sh ]]; then
+        print_status "INFO" "Set WORKON_HOME and PATH system-wide."
+        {
+            printf '# Set by dfir-tools.\n'
+            printf 'export WORKON_HOME=%s\n' "${WORKON_HOME}"
+            printf 'export PATH="$PATH:%s/didierstevenssuite"\n' "${DFIR_SRC}"
+        } | sudo tee /etc/profile.d/dfir-tools.sh > /dev/null
+        sudo chmod 0644 /etc/profile.d/dfir-tools.sh
+    fi
+}
+
 # Checkout git repo to directory
 function checkout-git-repo() {
     print_status "INFO" "Checkout $2 to $1"
-    if [[ ! -d ~/src/git/"$2" ]]; then
-        git clone --quiet "$1" ~/src/git/"$2" >> "$LOG" 2>&1
+    if [[ ! -d "${DFIR_SRC}"/"$2" ]]; then
+        git clone --quiet "$1" "${DFIR_SRC}"/"$2" >> "$LOG" 2>&1
         print_status "INFO" "Checkout git repo $1"
     fi
 }
 
 # Update git repositories
 function update-git-repositories() {
-    cd ~/src/git || exit 1
+    cd "${DFIR_SRC}" || exit 1
     print_status "INFO" "Update git repositories."
     shopt -s nullglob
     for repo in *; do
@@ -135,6 +173,8 @@ function create-common-directories() {
     for dir in "${src_dirs[@]}"; do
         mkdir -p ~/src/"$dir"
     done
+
+    setup-shared-dirs
 
     local mnt_dirs=(
         aff bde e01 evidence1 ewf ewf-mount
@@ -244,35 +284,35 @@ function install-general-tools() {
 
 function enable-new-didier() {
     print_status "INFO" "Setting permissions on DidierStevensSuite scripts"
-    if [[ -d ~/src/python/didierstevenssuite ]]; then
-        chmod 755 ~/src/python/didierstevenssuite/
-        chmod 755 ~/src/python/didierstevenssuite/base64dump.py
-        chmod 755 ~/src/python/didierstevenssuite/byte-stats.py
-        chmod 755 ~/src/python/didierstevenssuite/cipher-tool.py
-        chmod 755 ~/src/python/didierstevenssuite/count.py
-        chmod 755 ~/src/python/didierstevenssuite/cut-bytes.py
-        chmod 755 ~/src/python/didierstevenssuite/decode*
-        chmod 755 ~/src/python/didierstevenssuite/defuzzer.py
-        chmod 755 ~/src/python/didierstevenssuite/emldump.py
-        chmod 755 ~/src/python/didierstevenssuite/extractscripts.py
-        chmod 755 ~/src/python/didierstevenssuite/file2vbscript.py
-        chmod 755 ~/src/python/didierstevenssuite/find-file-in-file.py
-        chmod 755 ~/src/python/didierstevenssuite/hex-to-bin.py
-        chmod 755 ~/src/python/didierstevenssuite/numbers*
-        chmod 755 ~/src/python/didierstevenssuite/oledump.py
-        chmod 755 ~/src/python/didierstevenssuite/pdf-parser.py
-        chmod 755 ~/src/python/didierstevenssuite/pdfid.py
-        chmod 755 ~/src/python/didierstevenssuite/pecheck.py
-        chmod 755 ~/src/python/didierstevenssuite/plugin_*
-        chmod 755 ~/src/python/didierstevenssuite/python-per-line.py
-        chmod 755 ~/src/python/didierstevenssuite/reextra.py
-        chmod 755 ~/src/python/didierstevenssuite/re-search.py
-        chmod 755 ~/src/python/didierstevenssuite/rtfdump.py
-        chmod 755 ~/src/python/didierstevenssuite/sets.py
-        chmod 755 ~/src/python/didierstevenssuite/shellcode*
-        chmod 755 ~/src/python/didierstevenssuite/split.py
-        chmod 755 ~/src/python/didierstevenssuite/translate.py
-        chmod 755 ~/src/python/didierstevenssuite/zipdump.py
+    if [[ -d "${DFIR_SRC}"/didierstevenssuite ]]; then
+        chmod 755 "${DFIR_SRC}"/didierstevenssuite/
+        chmod 755 "${DFIR_SRC}"/didierstevenssuite/base64dump.py
+        chmod 755 "${DFIR_SRC}"/didierstevenssuite/byte-stats.py
+        chmod 755 "${DFIR_SRC}"/didierstevenssuite/cipher-tool.py
+        chmod 755 "${DFIR_SRC}"/didierstevenssuite/count.py
+        chmod 755 "${DFIR_SRC}"/didierstevenssuite/cut-bytes.py
+        chmod 755 "${DFIR_SRC}"/didierstevenssuite/decode*
+        chmod 755 "${DFIR_SRC}"/didierstevenssuite/defuzzer.py
+        chmod 755 "${DFIR_SRC}"/didierstevenssuite/emldump.py
+        chmod 755 "${DFIR_SRC}"/didierstevenssuite/extractscripts.py
+        chmod 755 "${DFIR_SRC}"/didierstevenssuite/file2vbscript.py
+        chmod 755 "${DFIR_SRC}"/didierstevenssuite/find-file-in-file.py
+        chmod 755 "${DFIR_SRC}"/didierstevenssuite/hex-to-bin.py
+        chmod 755 "${DFIR_SRC}"/didierstevenssuite/numbers*
+        chmod 755 "${DFIR_SRC}"/didierstevenssuite/oledump.py
+        chmod 755 "${DFIR_SRC}"/didierstevenssuite/pdf-parser.py
+        chmod 755 "${DFIR_SRC}"/didierstevenssuite/pdfid.py
+        chmod 755 "${DFIR_SRC}"/didierstevenssuite/pecheck.py
+        chmod 755 "${DFIR_SRC}"/didierstevenssuite/plugin_*
+        chmod 755 "${DFIR_SRC}"/didierstevenssuite/python-per-line.py
+        chmod 755 "${DFIR_SRC}"/didierstevenssuite/reextra.py
+        chmod 755 "${DFIR_SRC}"/didierstevenssuite/re-search.py
+        chmod 755 "${DFIR_SRC}"/didierstevenssuite/rtfdump.py
+        chmod 755 "${DFIR_SRC}"/didierstevenssuite/sets.py
+        chmod 755 "${DFIR_SRC}"/didierstevenssuite/shellcode*
+        chmod 755 "${DFIR_SRC}"/didierstevenssuite/split.py
+        chmod 755 "${DFIR_SRC}"/didierstevenssuite/translate.py
+        chmod 755 "${DFIR_SRC}"/didierstevenssuite/zipdump.py
     fi
 }
 
@@ -298,11 +338,13 @@ function install-google-chrome() {
 # Install Volatility 3 via Abyss-W4tcher's vol_ez_install (docker-based).
 # https://github.com/volatilityfoundation/volatility3
 # https://github.com/Abyss-W4tcher/volatility-scripts
-# vol_ez_install places volatility3 in ~/vol3; we symlink it into ~/src/git/ for consistency.
+# vol_ez_install hard-codes ~/vol3 as its install path, so volatility3 stays in
+# the home and will NOT survive imaging. The symlink below only makes it visible
+# from DFIR_SRC alongside the other tools; it does not fix that.
 function install-volatility() {
     print_status "INFO" "install-volatility"
     if [[ -d ~/vol3 ]]; then
-        [[ ! -e ~/src/git/volatility3 ]] && ln -sf ~/vol3 ~/src/git/volatility3
+        [[ ! -e "${DFIR_SRC}"/volatility3 ]] && ln -sf ~/vol3 "${DFIR_SRC}"/volatility3
         return
     fi
     print_status "INFO" "Install volatility3 via vol_ez_install."
@@ -313,7 +355,7 @@ function install-volatility() {
         /tmp/vol_ez_install.sh vol3_install
         rm -f /tmp/vol_ez_install.sh
     } >> "$LOG" 2>&1
-    [[ -d ~/vol3 ]] && ln -sf ~/vol3 ~/src/git/volatility3
+    [[ -d ~/vol3 ]] && ln -sf ~/vol3 "${DFIR_SRC}"/volatility3
     print_status "INFO" "Installed volatility3."
 }
 
@@ -334,7 +376,7 @@ function update-volatility() {
 # https://github.com/mkorman90/regipy
 function install-regipy() {
     print_status "INFO" "install-regipy"
-    if [[ ! -d ~/.virtualenvs/regipy ]]; then
+    if [[ ! -d "${WORKON_HOME}"/regipy ]]; then
         _venv mkvirtualenv regipy
         {
             pip install --upgrade pip
@@ -346,7 +388,7 @@ function install-regipy() {
 }
 
 function update-regipy() {
-    if [[ -d ~/.virtualenvs/regipy ]]; then
+    if [[ -d "${WORKON_HOME}"/regipy ]]; then
         _venv workon regipy
         {
             pip install --upgrade pip
@@ -358,12 +400,20 @@ function update-regipy() {
 }
 
 # https://github.com/ZarKyo/Autopsy-docker
+# The compose file is needed at run time by `docker compose up`, so it lives in
+# DFIR_SRC alongside the other checkouts. The built image itself is in
+# /var/lib/docker and is not affected by any of this.
+AUTOPSY_DIR="${DFIR_SRC}"/Autopsy-docker
+
 function install-autopsy-docker() {
     print_status "INFO" "install-autopsy-docker"
-    if [[ ! -d ~/src/git/Autopsy-docker ]]; then
+    if [[ ! -d ${AUTOPSY_DIR} ]]; then
         print_status "INFO" "Installing Autopsy-docker."
         checkout-git-repo https://github.com/ZarKyo/Autopsy-docker.git Autopsy-docker
-        cd ~/src/git/Autopsy-docker || { print_status "ERROR" "Couldn't cd into install-autopsy-docker."; exit 1; }
+        cd "${AUTOPSY_DIR}" || { print_status "ERROR" "Couldn't cd into install-autopsy-docker."; exit 1; }
+        # The build pulls several GB with its output redirected to the log;
+        # without this line it looks like a hang.
+        print_status "INFO" "Building the Autopsy Docker image, this takes a while (see $LOG)."
         sudo docker compose build 2>&1 | tee -a "$LOG" > /dev/null || \
             print_status "WARNING" "docker compose build failed — check that docker is installed."
         print_status "INFO" "Installed Autopsy-docker."
@@ -371,8 +421,9 @@ function install-autopsy-docker() {
 }
 
 function update-autopsy-docker() {
-    if [[ -d ~/src/git/Autopsy-docker ]]; then
-        cd ~/src/git/Autopsy-docker || { print_status "ERROR" "Couldn't cd into update-autopsy-docker."; exit 1; }
+    if [[ -d ${AUTOPSY_DIR} ]]; then
+        cd "${AUTOPSY_DIR}" || { print_status "ERROR" "Couldn't cd into update-autopsy-docker."; exit 1; }
+        print_status "INFO" "Rebuilding the Autopsy Docker image, this takes a while (see $LOG)."
         {
             git fetch --all
             git reset --hard "origin/$(git symbolic-ref --short refs/remotes/origin/HEAD | sed 's@^origin/@@')"
@@ -401,10 +452,8 @@ function install-pi-rho-security() {
 }
 
 # https://github.com/brendangregg/Chaosreader
-# Installed to /usr/local/bin, not ~/src/bin: a binary living in a home
-# directory belongs to that user only, and is lost when the machine is turned
-# into an image (the installer creates a brand-new user). /usr/local/bin is
-# part of the default PATH, so no shell configuration is needed.
+# /usr/local/bin: on the default PATH, available to every user, and part of the
+# rootfs so it survives imaging.
 function install-chaosreader() {
     print_status "INFO" "install-chaosreader"
     if [[ ! -e /usr/local/bin/chaosreader ]]; then
@@ -416,7 +465,6 @@ function install-chaosreader() {
         rm -rf "${tmpdir}"
         print_status "INFO" "Installed chaosreader."
     fi
-    # Legacy location, from before the move to /usr/local/bin.
     rm -f ~/src/bin/chaosreader
 }
 
@@ -427,7 +475,7 @@ function update-chaosreader() {
 }
 
 # https://github.com/mandiant/flare-floss
-# Installed to /usr/local/bin — same reason as chaosreader above.
+# /usr/local/bin, as for chaosreader above.
 function install-floss() {
     print_status "INFO" "install-floss"
     if [[ ! -e /usr/local/bin/floss ]]; then
@@ -449,7 +497,6 @@ function install-floss() {
         rm -rf "${tmpdir}"
         print_status "INFO" "Installed floss."
     fi
-    # Legacy location, from before the move to /usr/local/bin.
     rm -f ~/src/bin/floss
 }
 
@@ -462,10 +509,10 @@ function update-floss() {
 # https://github.com/Lazza/RecuperaBit
 function install-RecuperaBit() {
     print_status "INFO" "install-RecuperaBit"
-    if [[ ! -d ~/src/python/RecuperaBit ]]; then
+    if [[ ! -d "${DFIR_SRC}"/RecuperaBit ]]; then
         git clone --quiet https://github.com/Lazza/RecuperaBit.git \
-            ~/src/python/RecuperaBit >> "$LOG" 2>&1
-        cd ~/src/python/RecuperaBit || { print_status "ERROR" "Couldn't cd into install-RecuperaBit."; exit 1; }
+            "${DFIR_SRC}"/RecuperaBit >> "$LOG" 2>&1
+        cd "${DFIR_SRC}"/RecuperaBit || { print_status "ERROR" "Couldn't cd into install-RecuperaBit."; exit 1; }
         _venv mkvirtualenv RecuperaBit
         {
             _venv setvirtualenvproject
@@ -478,9 +525,9 @@ function install-RecuperaBit() {
 }
 
 function update-RecuperaBit() {
-    if [[ -d ~/src/python/RecuperaBit ]]; then
+    if [[ -d "${DFIR_SRC}"/RecuperaBit ]]; then
         _venv workon RecuperaBit
-        cd ~/src/python/RecuperaBit || { print_status "ERROR" "Couldn't cd into update-RecuperaBit."; exit 1; }
+        cd "${DFIR_SRC}"/RecuperaBit || { print_status "ERROR" "Couldn't cd into update-RecuperaBit."; exit 1; }
         {
             git fetch --all
             default_branch="$(git symbolic-ref refs/remotes/origin/HEAD 2>/dev/null | \
@@ -497,10 +544,10 @@ function update-RecuperaBit() {
 # https://github.com/MarkBaggett/srum-dump
 function install-srum-dump() {
     print_status "INFO" "install-srum-dump"
-    if [[ ! -d ~/src/python/srum-dump ]]; then
+    if [[ ! -d "${DFIR_SRC}"/srum-dump ]]; then
         git clone --quiet https://github.com/MarkBaggett/srum-dump.git \
-            ~/src/python/srum-dump >> "$LOG" 2>&1
-        cd ~/src/python/srum-dump || { print_status "ERROR" "Couldn't cd into install-srum-dump."; exit 1; }
+            "${DFIR_SRC}"/srum-dump >> "$LOG" 2>&1
+        cd "${DFIR_SRC}"/srum-dump || { print_status "ERROR" "Couldn't cd into install-srum-dump."; exit 1; }
         _venv mkvirtualenv srum-dump
         {
             _venv setvirtualenvproject
@@ -514,9 +561,9 @@ function install-srum-dump() {
 }
 
 function update-srum-dump() {
-    if [[ -d ~/src/python/srum-dump ]]; then
+    if [[ -d "${DFIR_SRC}"/srum-dump ]]; then
         _venv workon srum-dump
-        cd ~/src/python/srum-dump || { print_status "ERROR" "Couldn't cd into update-srum-dump."; exit 1; }
+        cd "${DFIR_SRC}"/srum-dump || { print_status "ERROR" "Couldn't cd into update-srum-dump."; exit 1; }
         {
             git fetch --all
             default_branch="$(git symbolic-ref refs/remotes/origin/HEAD 2>/dev/null | \
@@ -536,10 +583,10 @@ function update-srum-dump() {
 # https://github.com/DidierStevens/DidierStevensSuite
 function install-didierstevenssuite() {
     print_status "INFO" "install-didierstevenssuite"
-    if [[ ! -d ~/src/python/didierstevenssuite ]]; then
+    if [[ ! -d "${DFIR_SRC}"/didierstevenssuite ]]; then
         {
             git clone --quiet https://github.com/DidierStevens/DidierStevensSuite.git \
-                ~/src/python/didierstevenssuite
+                "${DFIR_SRC}"/didierstevenssuite
         } >> "$LOG" 2>&1
         _venv mkvirtualenv didierstevenssuite
         { _venv setvirtualenvproject; } >> "$LOG" 2>&1
@@ -550,9 +597,9 @@ function install-didierstevenssuite() {
 }
 
 function update-didierstevenssuite() {
-    if [[ -d ~/src/python/didierstevenssuite ]]; then
+    if [[ -d "${DFIR_SRC}"/didierstevenssuite ]]; then
         _venv workon didierstevenssuite
-        cd ~/src/python/didierstevenssuite || { print_status "ERROR" "Couldn't cd into update-didierstevenssuite."; exit 1; }
+        cd "${DFIR_SRC}"/didierstevenssuite || { print_status "ERROR" "Couldn't cd into update-didierstevenssuite."; exit 1; }
         {
             git fetch --all
             default_branch="$(git symbolic-ref refs/remotes/origin/HEAD 2>/dev/null | \
@@ -568,7 +615,7 @@ function update-didierstevenssuite() {
 # https://github.com/decalage2/oletools.git
 function install-oletools() {
     print_status "INFO" "install-oletools"
-    if [[ ! -d ~/.virtualenvs/oletools ]]; then
+    if [[ ! -d "${WORKON_HOME}"/oletools ]]; then
         _venv mkvirtualenv oletools
         {
             pip install --upgrade pip
@@ -580,7 +627,7 @@ function install-oletools() {
 }
 
 function update-oletools() {
-    if [[ -d ~/.virtualenvs/oletools ]]; then
+    if [[ -d "${WORKON_HOME}"/oletools ]]; then
         _venv workon oletools
         pip install --upgrade pip >> "$LOG" 2>&1
         pip install --upgrade oletools >> "$LOG" 2>&1
@@ -591,10 +638,10 @@ function update-oletools() {
 # https://github.com/bontchev/pcodedmp
 function install-pcodedmp() {
     print_status "INFO" "install-pcodedmp"
-    if [[ ! -d ~/src/python/pcodedmp ]]; then
+    if [[ ! -d "${DFIR_SRC}"/pcodedmp ]]; then
         git clone --quiet https://github.com/bontchev/pcodedmp.git \
-            ~/src/python/pcodedmp >> "$LOG" 2>&1
-        cd ~/src/python/pcodedmp || { print_status "ERROR" "Couldn't cd into install-pcodedmp."; exit 1; }
+            "${DFIR_SRC}"/pcodedmp >> "$LOG" 2>&1
+        cd "${DFIR_SRC}"/pcodedmp || { print_status "ERROR" "Couldn't cd into install-pcodedmp."; exit 1; }
         _venv mkvirtualenv pcodedmp
         {
             _venv setvirtualenvproject
@@ -607,9 +654,9 @@ function install-pcodedmp() {
 }
 
 function update-pcodedmp() {
-    if [[ -d ~/src/python/pcodedmp ]]; then
+    if [[ -d "${DFIR_SRC}"/pcodedmp ]]; then
         _venv workon pcodedmp
-        cd ~/src/python/pcodedmp || { print_status "ERROR" "Couldn't cd into update-pcodedmp."; exit 1; }
+        cd "${DFIR_SRC}"/pcodedmp || { print_status "ERROR" "Couldn't cd into update-pcodedmp."; exit 1; }
         {
             git fetch --all
             default_branch="$(git symbolic-ref refs/remotes/origin/HEAD 2>/dev/null | \
@@ -624,24 +671,29 @@ function update-pcodedmp() {
 # https://github.com/keydet89/RegRipper4.0
 function install-regripper() {
     print_status "INFO" "install-regripper"
-    if [[ ! -d ~/src/git/RegRipper4.0 ]]; then
-        git clone --quiet https://github.com/keydet89/RegRipper4.0.git \
-            ~/src/git/RegRipper4.0 >> "$LOG" 2>&1
+    if [[ ! -d "${DFIR_SRC}"/RegRipper4.0 ]]; then
+        checkout-git-repo https://github.com/keydet89/RegRipper4.0.git RegRipper4.0
         print_status "INFO" "Checked out RegRipper4.0."
-        chmod 755 "$HOME/src/git/dfir-tools/common/files/regripper"
-        ln -sf "$HOME/src/git/dfir-tools/common/files/regripper" ~/src/bin/regripper
     fi
+    # The wrapper is resolved relative to this file rather than to a checkout
+    # path, and installed system-wide so every user gets the `regripper`
+    # command.
+    if [[ ! -e /usr/local/bin/regripper ]]; then
+        sudo install -m 755 -o root -g root \
+            "$(dirname "${BASH_SOURCE[0]}")/../files/regripper" /usr/local/bin/regripper
+    fi
+    rm -f ~/src/bin/regripper
 }
 
 # https://github.com/radare/radare2
 function install-radare2() {
     print_status "INFO" "install-radare2"
-    if [[ ! -d ~/src/git/radare2 ]]; then
+    if [[ ! -d "${DFIR_SRC}"/radare2 ]]; then
         print_status "INFO" "Starting installation of radare2."
         sudo apt remove -y radare2 2>&1 | tee -a "$LOG" > /dev/null
         sudo apt-get autoremove -y 2>&1 | tee -a "$LOG" > /dev/null
         checkout-git-repo https://github.com/radare/radare2.git radare2
-        cd ~/src/git/radare2 || { print_status "ERROR" "Couldn't cd into install-radare2."; exit 1; }
+        cd "${DFIR_SRC}"/radare2 || { print_status "ERROR" "Couldn't cd into install-radare2."; exit 1; }
         make clean >> "$LOG" 2>&1 || true
         ./sys/install.sh >> "$LOG" 2>&1 || print_status "ERROR" "./sys/install.sh failed!"
         print_status "INFO" "Installed radare2."
@@ -650,10 +702,10 @@ function install-radare2() {
 
 function update-radare2() {
     print_status "INFO" "update-radare2"
-    if [[ -d ~/src/git/radare2 ]]; then
+    if [[ -d "${DFIR_SRC}"/radare2 ]]; then
         sudo apt remove -y radare2 2>&1 | tee -a "$LOG" > /dev/null
         sudo apt-get autoremove -y 2>&1 | tee -a "$LOG" > /dev/null
-        cd ~/src/git/radare2 || { print_status "ERROR" "Couldn't cd into update-radare2."; exit 1; }
+        cd "${DFIR_SRC}"/radare2 || { print_status "ERROR" "Couldn't cd into update-radare2."; exit 1; }
         {
             git fetch --all
             git reset --hard origin/master
@@ -732,7 +784,7 @@ function cleanup-sift() {
         rm -f ~/Desktop/*.pdf
     fi
 
-    # Migrate an existing install: ~/Documents/SIFT used to be a real directory.
+    # A real directory here means the PDFs are not yet in $docs.
     if [[ -d ~/Documents/SIFT && ! -L ~/Documents/SIFT ]]; then
         print_status "INFO" "Move SIFT documents to $docs."
         sudo install -d -m 755 -o root -g root "$docs"
