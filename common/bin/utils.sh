@@ -339,13 +339,25 @@ function install-google-chrome() {
 # Install Volatility 3 via Abyss-W4tcher's vol_ez_install (docker-based).
 # https://github.com/volatilityfoundation/volatility3
 # https://github.com/Abyss-W4tcher/volatility-scripts
-# vol_ez_install hard-codes ~/vol3 as its install path, so volatility3 stays in
-# the home and will NOT survive imaging. The symlink below only makes it visible
-# from DFIR_SRC alongside the other tools; it does not fix that.
+# vol_ez_install hard-codes ~/vol3, which would not survive imaging. We let it
+# install there, then move the directory into DFIR_SRC and leave a ~/vol3
+# symlink so the aliases (vol3d, volshell3d) keep working unchanged. The same
+# symlink is placed in /etc/skel by sift-iso-builder, so the user created by the
+# installer also gets ~/vol3 -> DFIR_SRC/vol3.
+function relocate-vol3() {
+    # DFIR_SRC is group-writable by `sudo` (mode 2775), so a sudo-group user can
+    # move into it without sudo, and git stays writable for updates.
+    if [[ -d ~/vol3 && ! -L ~/vol3 ]]; then
+        rm -rf "${DFIR_SRC}"/vol3
+        mv ~/vol3 "${DFIR_SRC}"/vol3
+        ln -sfn "${DFIR_SRC}"/vol3 ~/vol3
+    fi
+}
+
 function install-volatility() {
     print_status "INFO" "install-volatility"
-    if [[ -d ~/vol3 ]]; then
-        [[ ! -e "${DFIR_SRC}"/volatility3 ]] && ln -sf ~/vol3 "${DFIR_SRC}"/volatility3
+    if [[ -d "${DFIR_SRC}"/vol3 ]]; then
+        [[ ! -e ~/vol3 ]] && ln -sfn "${DFIR_SRC}"/vol3 ~/vol3
         return
     fi
     print_status "INFO" "Install volatility3 via vol_ez_install."
@@ -356,13 +368,14 @@ function install-volatility() {
         /tmp/vol_ez_install.sh vol3_install
         rm -f /tmp/vol_ez_install.sh
     } >> "$LOG" 2>&1
-    [[ -d ~/vol3 ]] && ln -sf ~/vol3 "${DFIR_SRC}"/volatility3
+    relocate-vol3
     print_status "INFO" "Installed volatility3."
 }
 
 function update-volatility() {
-    if [[ -d ~/vol3 ]]; then
-        cd ~/vol3 || { print_status "ERROR" "Couldn't cd into update-volatility."; exit 1; }
+    relocate-vol3   # migrate an install still living in the home
+    if [[ -d "${DFIR_SRC}"/vol3 ]]; then
+        cd "${DFIR_SRC}"/vol3 || { print_status "ERROR" "Couldn't cd into update-volatility."; exit 1; }
         print_status "INFO" "Update volatility3."
         {
             git fetch --all
