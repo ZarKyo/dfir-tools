@@ -150,6 +150,5 @@ export PATH=$HOME/bin:/opt/dfir-src/didierstevenssuite:$PATH
 # System-wide, so the venvs survive imaging and are shared by every user.
 # /etc/profile.d/dfir-tools.sh sets the same value for login shells.
 export WORKON_HOME=/opt/dfir-venvs
-export PROJECT_HOME="$HOME"/src/python
 # shellcheck source=/dev/null
 source /usr/share/virtualenvwrapper/virtualenvwrapper.sh

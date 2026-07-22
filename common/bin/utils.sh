@@ -174,10 +174,7 @@ function install-docker() {
 function create-common-directories() {
     print_status "INFO" "Create basic directory structure."
 
-    local src_dirs=(bin git python)
-    for dir in "${src_dirs[@]}"; do
-        mkdir -p ~/src/"$dir"
-    done
+    mkdir -p ~/src/git
 
     setup-shared-dirs
 
@@ -483,7 +480,6 @@ function install-chaosreader() {
         rm -rf "${tmpdir}"
         print_status "INFO" "Installed chaosreader."
     fi
-    rm -f ~/src/bin/chaosreader
 }
 
 function update-chaosreader() {
@@ -515,7 +511,6 @@ function install-floss() {
         rm -rf "${tmpdir}"
         print_status "INFO" "Installed floss."
     fi
-    rm -f ~/src/bin/floss
 }
 
 function update-floss() {
@@ -700,7 +695,6 @@ function install-regripper() {
         sudo install -m 755 -o root -g root \
             "$(dirname "${BASH_SOURCE[0]}")/../files/regripper" /usr/local/bin/regripper
     fi
-    rm -f ~/src/bin/regripper
 }
 
 # https://github.com/radare/radare2
