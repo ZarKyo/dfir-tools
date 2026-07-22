@@ -17,3 +17,12 @@ alias mountwin='mount -o ro,loop,show_sys_files,streams_interface=windows'
 # run, not when this file is sourced.
 cases-mount() { sudo mount -t vmhgfs ".host:/$(vmware-hgfsclient)" /cases; }
 alias cases-umount="sudo umount /cases"
+
+# Autopsy — dockerised GUI. The container needs access to the X server, so grant
+# local X clients for the duration and revoke it on exit. DFIR_SRC comes from
+# dfir-tools (defaults to /opt/dfir-src).
+autopsy() {
+    xhost +local: >/dev/null 2>&1
+    ( cd "${DFIR_SRC:-/opt/dfir-src}/Autopsy-docker" && docker compose up )
+    xhost -local: >/dev/null 2>&1
+}

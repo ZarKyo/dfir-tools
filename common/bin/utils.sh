@@ -89,10 +89,14 @@ function setup-shared-dirs() {
     done
 
     # Applies to every user of the installed image, not just this one.
+    # DFIR_SRC and WORKON_HOME are exported here so login sessions see them —
+    # utils.sh only sets them for install/update scripts, not at login, and the
+    # aliases (e.g. `autopsy`) rely on DFIR_SRC.
     if [[ ! -e /etc/profile.d/dfir-tools.sh ]]; then
-        print_status "INFO" "Set WORKON_HOME and PATH system-wide."
+        print_status "INFO" "Set DFIR_SRC, WORKON_HOME and PATH system-wide."
         {
             printf '# Set by dfir-tools.\n'
+            printf 'export DFIR_SRC=%s\n' "${DFIR_SRC}"
             printf 'export WORKON_HOME=%s\n' "${WORKON_HOME}"
             # shellcheck disable=SC2016  # $PATH must stay literal in the generated file
             printf 'export PATH="$PATH:%s/didierstevenssuite"\n' "${DFIR_SRC}"
