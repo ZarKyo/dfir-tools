@@ -33,8 +33,8 @@ cd ~/src/git/dfir-tools
 - Sets up Python virtualenvwrapper with isolated environments
 - Installs additional tools: chaosreader, FLOSS, capa, RecuperaBit, docker-explorer
 - Deploys SIFT aliases to `~/.sift_aliases`
-- Applies GNOME preferences (dark theme, 24h clock, dock config)
-- Runs `make dotfiles` to deploy `.bashrc`, `.vimrc`, `.bash_aliases`
+
+It ends by printing the manual steps left to do — among them `make dotfiles`, which the installer does **not** run for you.
 
 ### `make install-remnux`
 
@@ -45,8 +45,6 @@ cd ~/src/git/dfir-tools
 - Sets up Python virtualenvwrapper with isolated environments
 - Installs additional tools: chaosreader, pcodedmp, sleuthkit, testdisk
 - Deploys REMnux aliases to `~/.remnux_aliases`
-- Applies GNOME preferences (dark theme, 24h clock, dock config)
-- Runs `make dotfiles`
 
 ### `make install-dfir`
 

@@ -18,8 +18,8 @@ alias tn='tmux new'
 alias ta='tmux attach'
 alias b='bat'
 alias batcat='bat'
-alias c='code'
-alias C='code .'
+alias c='codium'
+alias C='codium .'
 alias p='python'
 alias tmp='pushd $(mktemp -d)'
 # Trick to have ALL aliases available with sudo <3
@@ -102,10 +102,8 @@ alias get-badchars='echo -e "\x22\x27<?>][]{}_)(*;/\x5c"'
 alias get-bytes-hex='python3 -c "for i in range(0,256): print(hex(i))"'
 alias get-bytes-raw='python3 -c "for i in range(0,256): print(chr(i))"'
 alias nonullbyte='sed "s/\x00//g"'
-alias urlencode='python3 -c "import sys, urllib as ul; \
-    print ul.quote_plus(sys.argv[1])"'
-alias urldecode='python3 -c "import sys, urllib as ul; \
-    print ul.unquote_plus(sys.argv[1])"'
+urlencode() { python3 -c 'import sys, urllib.parse; print(urllib.parse.quote_plus(sys.argv[1]))' "$1"; }
+urldecode() { python3 -c 'import sys, urllib.parse; print(urllib.parse.unquote_plus(sys.argv[1]))' "$1"; }
 
 # Sysadmin
 alias aptitall='sudo apt update && sudo apt upgrade -y && sudo apt autoremove -y && sudo apt clean -y && sudo apt purge -y'

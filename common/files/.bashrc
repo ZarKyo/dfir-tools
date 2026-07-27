@@ -119,7 +119,6 @@ else
 fi
 
 set -o noclobber
-export PATH=$PATH:/opt/rekall/bin
 
 # Add convert functions
 function hex-to-dec(){

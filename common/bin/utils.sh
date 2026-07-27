@@ -377,11 +377,8 @@ function update-veracrypt() {
 }
 
 # https://vscodium.com/ — VS Code without Microsoft's telemetry and branding.
-# Nothing in the SIFT chain installs VS Code itself; VSCodium is the editor for
-# this toolchain, and linux-config's `code` install is deliberately not reused.
-#
-# Installed from the project's own apt repo rather than a one-off .deb so that
-# `apt upgrade` (and update-sift.sh's dist-upgrade) keeps it current.
+# From the project's own apt repo rather than a one-off .deb, so `apt upgrade`
+# keeps it current and no update-vscodium is needed.
 function install-vscodium() {
     print_status "INFO" "install-vscodium"
     if dpkg --status codium > /dev/null 2>&1; then
@@ -433,11 +430,10 @@ function update-capa() {
 # https://github.com/google/docker-explorer — offline analysis of Docker
 # containers and images found in a disk image.
 #
-# From the git checkout, not PyPI: the last PyPI release is from 2023 while the
-# repository is maintained, and a checkout in DFIR_SRC is what
-# update-git-repositories already keeps current. The venv holds its `requests`
-# dependency; a /usr/local/bin wrapper with the paths baked in makes `de.py`
-# available to every user and survives imaging (see WORKON_HOME above).
+# From the git checkout rather than PyPI, whose releases lag well behind the
+# repository; update-git-repositories then keeps it current. The venv holds its
+# `requests` dependency, and a /usr/local/bin wrapper with the paths baked in
+# makes `de.py` available to every user and survives imaging.
 function install-docker-explorer() {
     print_status "INFO" "install-docker-explorer"
     if [[ ! -d "${DFIR_SRC}"/docker-explorer ]]; then
@@ -569,7 +565,6 @@ function install-volatility() {
 }
 
 function update-volatility() {
-    relocate-vol3   # migrate an install still living in the home
     if [[ -d "${DFIR_SRC}"/vol3 ]]; then
         cd "${DFIR_SRC}"/vol3 || { print_status "ERROR" "Couldn't cd into update-volatility."; exit 1; }
         print_status "INFO" "Update volatility3."
@@ -641,23 +636,6 @@ function update-autopsy-docker() {
         } >> "$LOG" 2>&1 || \
             print_status "WARNING" "Autopsy-docker update failed."
         print_status "INFO" "Updated Autopsy-docker."
-    fi
-}
-
-# This repo contians newer versions of Wireshark etc. Update again after adding
-function install-pi-rho-security() {
-    if [[ ! -e /etc/apt/sources.list.d/pi-rho-security-trusty.list ]]; then
-        print_status "INFO" "Enable ppa:pi-rho/security and install updated packages."
-        {
-            sudo add-apt-repository -y ppa:pi-rho/security
-            sudo apt -qq update
-            while ! sudo apt -y dist-upgrade --force-yes; do
-                print_status "WARNING" "APT busy. Will retry in 10 seconds."
-                sleep 10
-            done
-            sudo apt -qq -y install html2text nasm
-            sudo apt-get autoremove -qq -y
-        } >> "$LOG" 2>&1
     fi
 }
 
@@ -945,29 +923,32 @@ function install-sift() {
         # Does not validate gpg at the moment due to problems downloading keys in some networks...
         sudo dpkg -i cast*.deb
         sudo systemctl stop ssh.service
-        # --pre-release: enables Ubuntu 24.04 support (unstable salt states); uncomment when ready
-        # sudo /usr/bin/cast install --pre-release teamdfir/sift-saltstack 2>&1 | tee -a "$LOG"
         sudo /usr/bin/cast install teamdfir/sift-saltstack 2>&1 | tee -a "$LOG"
         sudo systemctl start ssh.service
         touch ~/.config/.sift
-        print_status "INFO" "SITF installation finished."
+        print_status "INFO" "SIFT installation finished."
     fi
 }
 
 function update-sift() {
     START_FRESHCLAM=1
-    print_status "INFO" "Start SITF upgrade."
+    print_status "INFO" "Start SIFT upgrade."
     if sudo service clamav-freshclam status 2>&1 | tee -a "$LOG" | grep -q "Active: active"; then
         sudo service clamav-freshclam stop 2>&1 | tee -a "$LOG" > /dev/null
         START_FRESHCLAM=0
     fi
     {
         sudo /usr/local/bin/sift update || true
-        sudo /usr/local/bin/sift upgrade
-        # Run upgrade twice since I often seen some fails the first time
+        # Two passes: salt exits 0 even when individual states failed, and a
+        # second run tends to settle those. The first pass is allowed to fail
+        # outright — without `|| true`, set -e would abort here and the retry
+        # would never run, which is exactly the case it exists for. The second
+        # pass is NOT tolerated, so an upgrade that is genuinely broken still
+        # stops the script instead of being reported as a success.
+        sudo /usr/local/bin/sift upgrade || true
         sudo /usr/local/bin/sift upgrade
     } >> "$LOG" 2>&1
-    print_status "INFO" "SITF upgrade finished."
+    print_status "INFO" "SIFT upgrade finished."
     if [[ $START_FRESHCLAM -eq 0 ]]; then
         sudo service clamav-freshclam start 2>&1 | tee -a "$LOG" > /dev/null
     fi
