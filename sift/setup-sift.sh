@@ -83,6 +83,14 @@ set +u
 source /usr/share/virtualenvwrapper/virtualenvwrapper.sh
 set -u
 
+# Install packages
+install-vscodium
+install-balena-etcher
+install-drawio
+install-veracrypt
+#install-capa
+
+# Install python
 install-didierstevenssuite
 install-srum-dump
 install-oletools
@@ -91,7 +99,10 @@ install-regipy
 install-RecuperaBit
 install-chaosreader
 install-floss
+
+# Install docker
 install-volatility
+install-docker-explorer
 install-autopsy-docker
 
 # Install aliases for SIFT. This way we can update them without

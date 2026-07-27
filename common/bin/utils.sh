@@ -250,7 +250,10 @@ function install-general-tools() {
         dos2unix \
         exfat-fuse \
         eza \
+        flameshot \
         git \
+        gnupg \
+        hdparm \
         htop \
         jq \
         libffi-dev \
@@ -258,9 +261,13 @@ function install-general-tools() {
         libncurses5-dev \
         libssl-dev \
         make \
+        nvme-cli \
         p7zip \
         python3-dev \
         python3-virtualenv \
+        remmina \
+        remmina-plugin-rdp \
+        remmina-plugin-vnc \
         screen \
         sharutils \
         sqlite3 \
@@ -269,12 +276,14 @@ function install-general-tools() {
         tmux \
         trash-cli \
         tshark \
+        unzip \
         vim \
         vim-doc \
         vim-scripts \
         virtualenvwrapper \
         wget \
         whois \
+        wireshark-common \
         wswedish \
         nano \
         zip 2>&1 | tee -a "$LOG" > /dev/null
@@ -282,6 +291,192 @@ function install-general-tools() {
         unrar 2>&1 | tee -a "${LOG}" > /dev/null ||
         sudo DEBIAN_FRONTEND=noninteractive apt -yqq install \
             unrar-free 2>&1 | tee -a "${LOG}" > /dev/null
+}
+
+# Install the latest release .deb of a GitHub project.
+#   $1  owner/repo
+#   $2  dpkg package name — also the idempotency guard
+#   $3  ERE matched (case-insensitively) against the asset names
+#
+# Every caller below publishes an amd64-only .deb, so this bails out on any
+# other architecture rather than installing something that cannot run.
+function install-github-deb() {
+    local repo="$1" pkg="$2" pattern="$3"
+    local url tmpdir
+
+    if dpkg --status "${pkg}" > /dev/null 2>&1; then
+        return 0
+    fi
+    if [[ "$(uname -m)" != "x86_64" ]]; then
+        print_status "WARNING" "Skipping ${pkg}: only an amd64 .deb is published, host is $(uname -m)."
+        return 0
+    fi
+
+    print_status "INFO" "Installing ${pkg} from the latest ${repo} release."
+    url="$(curl -s "https://api.github.com/repos/${repo}/releases/latest" | \
+        jq -r --arg p "${pattern}" \
+        '.assets[] | select(.name | test($p; "i")) | .browser_download_url' | head -1)"
+    if [[ -z "${url}" ]]; then
+        print_status "ERROR" "No asset matching /${pattern}/ in the latest ${repo} release."
+        return 1
+    fi
+
+    tmpdir="$(mktemp -d)"
+    wget -q -O "${tmpdir}/${pkg}.deb" "${url}" >> "$LOG" 2>&1
+    # dpkg does not resolve dependencies and exits non-zero when some are
+    # missing; `apt -f install` then pulls them in and finishes the configure.
+    sudo dpkg -i "${tmpdir}/${pkg}.deb" 2>&1 | tee -a "$LOG" > /dev/null || true
+    sudo apt-get -qq -f -y install 2>&1 | tee -a "$LOG" > /dev/null
+    rm -rf "${tmpdir}"
+    print_status "INFO" "Installed ${pkg}."
+}
+
+# Reinstall a github-deb package at the latest release. The .deb repos below
+# publish no apt source, so `apt upgrade` never sees them.
+function update-github-deb() {
+    local repo="$1" pkg="$2" pattern="$3"
+    if dpkg --status "${pkg}" > /dev/null 2>&1; then
+        sudo apt-get -yqq remove "${pkg}" 2>&1 | tee -a "$LOG" > /dev/null
+    fi
+    install-github-deb "${repo}" "${pkg}" "${pattern}"
+}
+
+# https://github.com/balena-io/etcher — write a forensic image to USB media.
+function install-balena-etcher() {
+    print_status "INFO" "install-balena-etcher"
+    install-github-deb balena-io/etcher balena-etcher '^balena-etcher_.*_amd64\.deb$'
+}
+
+function update-balena-etcher() {
+    update-github-deb balena-io/etcher balena-etcher '^balena-etcher_.*_amd64\.deb$'
+}
+
+# https://github.com/jgraph/drawio-desktop — offline diagramming (timelines,
+# network maps) for reports, with no browser round-trip.
+function install-drawio() {
+    print_status "INFO" "install-drawio"
+    install-github-deb jgraph/drawio-desktop draw.io '^drawio-amd64-.*\.deb$'
+}
+
+function update-drawio() {
+    update-github-deb jgraph/drawio-desktop draw.io '^drawio-amd64-.*\.deb$'
+}
+
+# https://www.veracrypt.fr/ — mount/analyse VeraCrypt and TrueCrypt volumes.
+# The GUI build, not veracrypt-console: `^veracrypt-[0-9]` is what excludes the
+# console asset, whose name shares the same prefix.
+VERACRYPT_ASSET='^veracrypt-[0-9].*-Ubuntu-24\.04-amd64\.deb$'
+
+function install-veracrypt() {
+    print_status "INFO" "install-veracrypt"
+    install-github-deb veracrypt/VeraCrypt veracrypt "${VERACRYPT_ASSET}"
+}
+
+function update-veracrypt() {
+    update-github-deb veracrypt/VeraCrypt veracrypt "${VERACRYPT_ASSET}"
+}
+
+# https://vscodium.com/ — VS Code without Microsoft's telemetry and branding.
+# Nothing in the SIFT chain installs VS Code itself; VSCodium is the editor for
+# this toolchain, and linux-config's `code` install is deliberately not reused.
+#
+# Installed from the project's own apt repo rather than a one-off .deb so that
+# `apt upgrade` (and update-sift.sh's dist-upgrade) keeps it current.
+function install-vscodium() {
+    print_status "INFO" "install-vscodium"
+    if dpkg --status codium > /dev/null 2>&1; then
+        return 0
+    fi
+    local key=/usr/share/keyrings/vscodium-archive-keyring.gpg
+    print_status "INFO" "Installing VSCodium."
+    {
+        curl -fsSL https://gitlab.com/paulcarroty/vscodium-deb-rpm-repo/raw/master/pub.gpg | \
+            gpg --dearmor | sudo tee "${key}" > /dev/null
+        sudo chmod 0644 "${key}"
+        printf 'deb [signed-by=%s] https://download.vscodium.com/debs vscodium main\n' "${key}" | \
+            sudo tee /etc/apt/sources.list.d/vscodium.list > /dev/null
+        sudo apt-get -qq update
+        sudo DEBIAN_FRONTEND=noninteractive apt-get -yqq install codium
+    } >> "$LOG" 2>&1
+    print_status "INFO" "Installed VSCodium."
+}
+
+# https://github.com/mandiant/capa — identify capabilities in executables.
+# /usr/local/bin, as for floss above.
+function install-capa() {
+    print_status "INFO" "install-capa"
+    if [[ ! -e /usr/local/bin/capa ]]; then
+        local url tmpdir
+        # The release also carries -linux-arm64 and -linux-py312 archives, so
+        # anchor on the exact suffix rather than matching "linux".
+        url="$(curl -s https://api.github.com/repos/mandiant/capa/releases/latest | \
+            jq -r '.assets[] | select(.name | test("-linux\\.zip$"; "i")) | .browser_download_url' | head -1)"
+        if [[ -z "$url" ]]; then
+            print_status "ERROR" "Could not find capa Linux release on GitHub."
+            return 1
+        fi
+        tmpdir="$(mktemp -d)"
+        wget -q -O "${tmpdir}/capa.zip" "$url" >> "$LOG" 2>&1
+        unzip -q -o "${tmpdir}/capa.zip" -d "${tmpdir}" >> "$LOG" 2>&1
+        sudo install -m 755 -o root -g root "${tmpdir}/capa" /usr/local/bin/capa
+        rm -rf "${tmpdir}"
+        print_status "INFO" "Installed capa."
+    fi
+}
+
+function update-capa() {
+    print_status "INFO" "Update capa."
+    sudo rm -f /usr/local/bin/capa
+    install-capa
+}
+
+# https://github.com/google/docker-explorer — offline analysis of Docker
+# containers and images found in a disk image.
+#
+# From the git checkout, not PyPI: the last PyPI release is from 2023 while the
+# repository is maintained, and a checkout in DFIR_SRC is what
+# update-git-repositories already keeps current. The venv holds its `requests`
+# dependency; a /usr/local/bin wrapper with the paths baked in makes `de.py`
+# available to every user and survives imaging (see WORKON_HOME above).
+function install-docker-explorer() {
+    print_status "INFO" "install-docker-explorer"
+    if [[ ! -d "${DFIR_SRC}"/docker-explorer ]]; then
+        git clone --quiet https://github.com/google/docker-explorer.git \
+            "${DFIR_SRC}"/docker-explorer >> "$LOG" 2>&1
+        cd "${DFIR_SRC}"/docker-explorer || { print_status "ERROR" "Couldn't cd into install-docker-explorer."; exit 1; }
+        _venv mkvirtualenv docker-explorer
+        {
+            _venv setvirtualenvproject
+            pip install --upgrade pip
+            pip install requests
+        } >> "$LOG" 2>&1
+        _venv deactivate
+        print_status "INFO" "Checked out docker-explorer."
+    fi
+    if [[ ! -e /usr/local/bin/docker-explorer ]]; then
+        {
+            printf '#!/bin/sh\n'
+            printf '# Wrapper generated by dfir-tools. https://github.com/google/docker-explorer\n'
+            printf 'exec %s/docker-explorer/bin/python %s/docker-explorer/tools/de.py "$@"\n' \
+                "${WORKON_HOME}" "${DFIR_SRC}"
+        } | sudo tee /usr/local/bin/docker-explorer > /dev/null
+        sudo chmod 0755 /usr/local/bin/docker-explorer
+        print_status "INFO" "Installed the docker-explorer wrapper."
+    fi
+}
+
+function update-docker-explorer() {
+    if [[ -d "${DFIR_SRC}"/docker-explorer ]]; then
+        # The checkout itself is refreshed by update-git-repositories; only the
+        # venv dependencies need a pass here.
+        _venv workon docker-explorer
+        {
+            pip install --upgrade pip
+            pip install --upgrade requests
+        } >> "$LOG" 2>&1
+        _venv deactivate
+        print_status "INFO" "Updated docker-explorer."
+    fi
 }
 
 function enable-new-didier() {

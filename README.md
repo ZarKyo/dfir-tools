@@ -25,12 +25,13 @@ cd ~/src/git/dfir-tools
 
 ### `make install-sift`
 
-- Updates Ubuntu and installs general packages (vim, tshark, curl, git, tmux, sqlite3, jq…)
+- Updates Ubuntu and installs general packages (vim, tshark, curl, git, tmux, sqlite3, jq, hdparm, nvme-cli, flameshot, remmina…)
 - Installs `open-vm-tools-desktop` for VMware
 - Installs SIFT via `cast install teamdfir/sift-saltstack`
 - Installs Google Chrome
+- Installs desktop tools shipped as a `.deb` or their own apt repo: VSCodium, balenaEtcher, drawio, VeraCrypt
 - Sets up Python virtualenvwrapper with isolated environments
-- Installs additional tools: chaosreader, FLOSS, RecuperaBit
+- Installs additional tools: chaosreader, FLOSS, capa, RecuperaBit, docker-explorer
 - Deploys SIFT aliases to `~/.sift_aliases`
 - Applies GNOME preferences (dark theme, 24h clock, dock config)
 - Runs `make dotfiles` to deploy `.bashrc`, `.vimrc`, `.bash_aliases`

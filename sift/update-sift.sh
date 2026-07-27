@@ -66,12 +66,21 @@ set -u
 # Update git repositories
 update-git-repositories
 
+# Update packages
+update-balena-etcher
+update-drawio
+update-veracrypt
+update-capa
+
 # Update python
 update-chaosreader
 update-floss
 update-RecuperaBit
 update-volatility
 update-regipy
+
+# Update docker
+update-docker-explorer
 update-autopsy-docker
 
 print_status "INFO" "update-sift.sh done."
