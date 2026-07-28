@@ -88,7 +88,7 @@ install-vscodium
 install-balena-etcher
 install-drawio
 install-veracrypt
-#install-capa
+install-capa
 
 # Install python
 install-didierstevenssuite

@@ -4,10 +4,13 @@ set -euo pipefail
 IFS=$'\n\t'
 
 # Set GNOME Shell dock favorite applications
+# 'firefox.desktop', not 'firefox_firefox.desktop': gui.sh drops the snap and
+# installs the Mozilla .deb, which ships /usr/share/applications/firefox.desktop.
+# The `<snap>_<app>.desktop` form is snap-only and yields a dead dock entry here.
 gsettings set org.gnome.shell favorite-apps "[
     'org.gnome.Nautilus.desktop',
     'org.gnome.Terminal.desktop',
-    'firefox_firefox.desktop',
+    'firefox.desktop',
     'org.wireshark.Wireshark.desktop'
 ]"
 
