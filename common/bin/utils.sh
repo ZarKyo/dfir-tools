@@ -275,6 +275,7 @@ function install-general-tools() {
         strace \
         tmux \
         trash-cli \
+        tree \
         tshark \
         unzip \
         vim \
