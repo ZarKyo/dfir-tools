@@ -261,6 +261,7 @@ function install-general-tools() {
         libncurses5-dev \
         libssl-dev \
         make \
+        meld \
         nvme-cli \
         p7zip \
         python3-dev \

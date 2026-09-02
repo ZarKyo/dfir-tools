@@ -25,7 +25,7 @@ cd ~/src/git/dfir-tools
 
 ### `make install-sift`
 
-- Updates Ubuntu and installs general packages (vim, tshark, curl, git, tmux, sqlite3, jq, hdparm, nvme-cli, flameshot, remmina…)
+- Updates Ubuntu and installs general packages (vim, tshark, curl, git, tmux, sqlite3, jq, hdparm, nvme-cli, flameshot, remmina, meld…)
 - Installs `open-vm-tools-desktop` for VMware
 - Installs SIFT via `cast install teamdfir/sift-saltstack`
 - Installs Google Chrome
