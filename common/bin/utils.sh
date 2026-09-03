@@ -69,7 +69,7 @@ function _venv() {
 # survive imaging, where the installer creates a brand-new user. A virtualenv
 # additionally hard-codes absolute paths (script shebangs, VIRTUAL_ENV in
 # bin/activate) and cannot be relocated afterwards, so WORKON_HOME has to be
-# set before any mkvirtualenv call — hence its definition here, at source time.
+# set before any mkvirtualenv call - hence its definition here, at source time.
 export WORKON_HOME="${WORKON_HOME_OVERRIDE:-/opt/dfir-venvs}"
 export DFIR_SRC="${DFIR_SRC_OVERRIDE:-/opt/dfir-src}"
 
@@ -89,7 +89,7 @@ function setup-shared-dirs() {
     done
 
     # Applies to every user of the installed image, not just this one.
-    # DFIR_SRC and WORKON_HOME are exported here so login sessions see them —
+    # DFIR_SRC and WORKON_HOME are exported here so login sessions see them -
     # utils.sh only sets them for install/update scripts, not at login, and the
     # aliases (e.g. `autopsy`) rely on DFIR_SRC.
     if [[ ! -e /etc/profile.d/dfir-tools.sh ]]; then
@@ -297,7 +297,7 @@ function install-general-tools() {
 
 # Install the latest release .deb of a GitHub project.
 #   $1  owner/repo
-#   $2  dpkg package name — also the idempotency guard
+#   $2  dpkg package name - also the idempotency guard
 #   $3  ERE matched (case-insensitively) against the asset names
 #
 # Every caller below publishes an amd64-only .deb, so this bails out on any
@@ -343,7 +343,7 @@ function update-github-deb() {
     install-github-deb "${repo}" "${pkg}" "${pattern}"
 }
 
-# https://github.com/balena-io/etcher — write a forensic image to USB media.
+# https://github.com/balena-io/etcher - write a forensic image to USB media.
 function install-balena-etcher() {
     print_status "INFO" "install-balena-etcher"
     install-github-deb balena-io/etcher balena-etcher '^balena-etcher_.*_amd64\.deb$'
@@ -353,7 +353,7 @@ function update-balena-etcher() {
     update-github-deb balena-io/etcher balena-etcher '^balena-etcher_.*_amd64\.deb$'
 }
 
-# https://github.com/jgraph/drawio-desktop — offline diagramming (timelines,
+# https://github.com/jgraph/drawio-desktop - offline diagramming (timelines,
 # network maps) for reports, with no browser round-trip.
 function install-drawio() {
     print_status "INFO" "install-drawio"
@@ -364,7 +364,7 @@ function update-drawio() {
     update-github-deb jgraph/drawio-desktop draw.io '^drawio-amd64-.*\.deb$'
 }
 
-# https://www.veracrypt.fr/ — mount/analyse VeraCrypt and TrueCrypt volumes.
+# https://www.veracrypt.fr/ - mount/analyse VeraCrypt and TrueCrypt volumes.
 # The GUI build, not veracrypt-console: `^veracrypt-[0-9]` is what excludes the
 # console asset, whose name shares the same prefix.
 VERACRYPT_ASSET='^veracrypt-[0-9].*-Ubuntu-24\.04-amd64\.deb$'
@@ -378,7 +378,7 @@ function update-veracrypt() {
     update-github-deb veracrypt/VeraCrypt veracrypt "${VERACRYPT_ASSET}"
 }
 
-# https://vscodium.com/ — VS Code without Microsoft's telemetry and branding.
+# https://vscodium.com/ - VS Code without Microsoft's telemetry and branding.
 # From the project's own apt repo rather than a one-off .deb, so `apt upgrade`
 # keeps it current and no update-vscodium is needed.
 function install-vscodium() {
@@ -400,7 +400,7 @@ function install-vscodium() {
     print_status "INFO" "Installed VSCodium."
 }
 
-# https://github.com/mandiant/capa — identify capabilities in executables.
+# https://github.com/mandiant/capa - identify capabilities in executables.
 # /usr/local/bin, as for floss above.
 function install-capa() {
     print_status "INFO" "install-capa"
@@ -429,7 +429,7 @@ function update-capa() {
     install-capa
 }
 
-# https://github.com/google/docker-explorer — offline analysis of Docker
+# https://github.com/google/docker-explorer - offline analysis of Docker
 # containers and images found in a disk image.
 #
 # From the git checkout rather than PyPI, whose releases lag well behind the
@@ -622,7 +622,7 @@ function install-autopsy-docker() {
         # without this line it looks like a hang.
         print_status "INFO" "Building the Autopsy Docker image, this takes a while (see $LOG)."
         sudo docker compose build 2>&1 | tee -a "$LOG" > /dev/null || \
-            print_status "WARNING" "docker compose build failed — check that docker is installed."
+            print_status "WARNING" "docker compose build failed - check that docker is installed."
         print_status "INFO" "Installed Autopsy-docker."
     fi
 }
@@ -943,7 +943,7 @@ function update-sift() {
         sudo /usr/local/bin/sift update || true
         # Two passes: salt exits 0 even when individual states failed, and a
         # second run tends to settle those. The first pass is allowed to fail
-        # outright — without `|| true`, set -e would abort here and the retry
+        # outright - without `|| true`, set -e would abort here and the retry
         # would never run, which is exactly the case it exists for. The second
         # pass is NOT tolerated, so an upgrade that is genuinely broken still
         # stops the script instead of being reported as a success.

@@ -28,7 +28,7 @@ touch $LOG
 # Ask for the sudo password once, up front, rather than in the middle of a long
 # install. `sudo -n true` probes non-interactively and stays silent when sudo
 # needs no password, so a prompt only appears when there is really one to enter
-# — which keeps this working under an automated build, where there is no TTY.
+# - which keeps this working under an automated build, where there is no TTY.
 #
 # `sudo -v` cannot be used for this: sudoers(5) verifypw defaults to `all`,
 # meaning every entry matching the user must carry NOPASSWD for -v to skip the

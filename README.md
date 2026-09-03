@@ -2,7 +2,7 @@
 
 [![Super-Linter](https://github.com/ZarKyo/dfir-tools/actions/workflows/linter.yml/badge.svg)](https://github.com/marketplace/actions/super-linter)
 
-Post-installation scripts to configure a DFIR workstation on Ubuntu. Supports three installation modes: SIFT, REMnux, or DFIR (SIFT + REMnux addon). Do not run SIFT and REMnux installers in the same VM — use `install-dfir` for the combined setup.
+Post-installation scripts to configure a DFIR workstation on Ubuntu. Supports three installation modes: SIFT, REMnux, or DFIR (SIFT + REMnux addon). Do not run SIFT and REMnux installers in the same VM - use `install-dfir` for the combined setup.
 
 ## Installation
 
@@ -34,7 +34,7 @@ cd ~/src/git/dfir-tools
 - Installs additional tools: chaosreader, FLOSS, capa, RecuperaBit, docker-explorer
 - Deploys SIFT aliases to `~/.sift_aliases`
 
-It ends by printing the manual steps left to do — among them `make dotfiles`, which the installer does **not** run for you.
+It ends by printing the manual steps left to do - among them `make dotfiles`, which the installer does **not** run for you.
 
 ### `make install-remnux`
 
@@ -76,4 +76,4 @@ make test   # shellcheck on all scripts → checkstyle.out
 
 ## Thanks to
 
-- [reuteras/remnux-tools](https://github.com/reuteras/remnux-tools) – Most of the work in this repository is based on this project. I have adapted and customized it extensively to suit my workflow, preferences, and additional tools.
+- [reuteras/remnux-tools](https://github.com/reuteras/remnux-tools) - Most of the work in this repository is based on this project. I have adapted and customized it extensively to suit my workflow, preferences, and additional tools.
