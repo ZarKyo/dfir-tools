@@ -10,7 +10,6 @@ alias docker-remnux-mastiff="sudo docker run --rm -it -v ~/docker/mastiff:/home/
 alias docker-remnux-viper-web="sudo docker run --rm -p 9090:9090 -v ~/docker/viper:/home/nonroot/workdir remnux/viper"
 alias docker-remnux-viper-cmd="sudo docker run --rm -it -v ~/docker/viper:/home/nonroot/workdir remnux/viper bash"
 alias docker-mongodb="sudo docker run -d -p 27017:27017 --name mongodb mongo:3.2"
-alias jdeserialize="java -jar ~/remnux-tools/lib/jdeserialize-1.2.jar -noclasses"
 alias private="/usr/bin/curl http://icanhazip.com"
 alias zerodisk="dd if=/dev/zero of=zero; sync; rm -f zero"
 # shellcheck disable=SC1004

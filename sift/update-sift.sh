@@ -70,6 +70,7 @@ update-git-repositories
 update-balena-etcher
 update-drawio
 update-veracrypt
+update-cyberchef
 update-capa
 
 # Update python

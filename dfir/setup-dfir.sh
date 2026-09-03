@@ -49,6 +49,7 @@ sudo systemctl start ssh.service
 touch ~/.config/.remnux
 
 install-apt-remnux
+install-jdeserialize
 cleanup-remnux
 
 # REMnux aliases (SIFT aliases already deployed by setup-sift.sh)

@@ -88,6 +88,7 @@ install-vscodium
 install-balena-etcher
 install-drawio
 install-veracrypt
+install-cyberchef
 install-capa
 
 # Install python

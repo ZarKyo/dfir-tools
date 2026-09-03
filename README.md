@@ -30,6 +30,7 @@ cd ~/src/git/dfir-tools
 - Installs SIFT via `cast install teamdfir/sift-saltstack`
 - Installs Google Chrome
 - Installs desktop tools shipped as a `.deb` or their own apt repo: VSCodium, balenaEtcher, drawio, VeraCrypt
+- Installs CyberChef offline in `/opt/cyberchef`, with a `cyberchef` launcher and a desktop entry
 - Sets up Python virtualenvwrapper with isolated environments
 - Installs additional tools: chaosreader, FLOSS, capa, RecuperaBit, docker-explorer
 - Deploys SIFT aliases to `~/.sift_aliases`

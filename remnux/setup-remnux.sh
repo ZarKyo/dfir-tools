@@ -79,6 +79,9 @@ install-pcodedmp
 # Install APT packages for REMnux
 install-apt-remnux
 
+# Bundled jar + /usr/local/bin wrapper
+install-jdeserialize
+
 # Install aliases for REMnux. This way we can update them without
 # affecting .bash_aliases.
 cp "${SCRIPT_DIR}/.remnux_aliases" ~/.remnux_aliases

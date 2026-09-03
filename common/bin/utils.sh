@@ -72,6 +72,12 @@ function _venv() {
 # set before any mkvirtualenv call - hence its definition here, at source time.
 export WORKON_HOME="${WORKON_HOME_OVERRIDE:-/opt/dfir-venvs}"
 export DFIR_SRC="${DFIR_SRC_OVERRIDE:-/opt/dfir-src}"
+# Library payloads that are neither a checkout nor a virtualenv - jars shipped in
+# this repository's common/lib/ and run through a /usr/local/bin wrapper. Same
+# reasoning as the two above: outside any home, so it belongs to the machine and
+# survives imaging. Not exported to /etc/profile.d - nothing reads it at login,
+# the wrappers bake the path in.
+export DFIR_LIB="${DFIR_LIB_OVERRIDE:-/opt/dfir-lib}"
 
 # Create the shared locations and make WORKON_HOME the machine-wide default.
 function setup-shared-dirs() {
@@ -398,6 +404,99 @@ function install-vscodium() {
         sudo DEBIAN_FRONTEND=noninteractive apt-get -yqq install codium
     } >> "$LOG" 2>&1
     print_status "INFO" "Installed VSCodium."
+}
+
+# https://github.com/gchq/CyberChef - offline "cyber swiss army knife": decode,
+# decompress, parse and extract data without sending evidence to a web service.
+#
+# Published as a release zip of static files - no apt source and no .deb, so
+# install-github-deb does not apply. The tree is unpacked under /opt, outside
+# any home directory, so it belongs to the machine and survives imaging, and
+# the release tag is recorded in .version: that is what makes a re-run cheap
+# rather than a ~75 MB download every time.
+CYBERCHEF_DIR=/opt/cyberchef
+
+function install-cyberchef() {
+    print_status "INFO" "install-cyberchef"
+    local release tag url tmpdir html
+
+    release="$(curl -s https://api.github.com/repos/gchq/CyberChef/releases/latest)"
+    tag="$(printf '%s' "${release}" | jq -r '.tag_name // empty')"
+    if [[ -z "${tag}" ]]; then
+        print_status "ERROR" "Could not find the latest CyberChef release on GitHub."
+        return 1
+    fi
+    if [[ -e "${CYBERCHEF_DIR}/.version" ]] && \
+        [[ "$(cat "${CYBERCHEF_DIR}/.version")" == "${tag}" ]]; then
+        return 0
+    fi
+
+    # The asset name carries the build hash (CyberChef_<sha>.zip) on recent
+    # releases and the version (CyberChef_v10.19.4.zip) on older ones, hence
+    # the loose pattern.
+    url="$(printf '%s' "${release}" | \
+        jq -r '.assets[] | select(.name | test("^CyberChef_.*\.zip$"; "i")) | .browser_download_url' | head -1)"
+    if [[ -z "${url}" ]]; then
+        print_status "ERROR" "No CyberChef zip asset in release ${tag}."
+        return 1
+    fi
+
+    print_status "INFO" "Installing CyberChef ${tag}."
+    tmpdir="$(mktemp -d)"
+    wget -q -O "${tmpdir}/cyberchef.zip" "${url}" >> "$LOG" 2>&1
+    unzip -q -o "${tmpdir}/cyberchef.zip" -d "${tmpdir}/cyberchef" >> "$LOG" 2>&1
+
+    # The entry point is a versioned CyberChef_v<version>.html sitting next to
+    # assets/ and modules/, which it loads by relative path - so the whole tree
+    # is installed, not just the HTML. An index.html symlink keeps the launcher
+    # and the desktop entry independent of the version in that filename.
+    html="$(find "${tmpdir}/cyberchef" -maxdepth 1 -name 'CyberChef_*.html' -printf '%f\n' | head -1)"
+    if [[ -z "${html}" ]]; then
+        print_status "ERROR" "No CyberChef_*.html at the root of the ${tag} zip."
+        rm -rf "${tmpdir}"
+        return 1
+    fi
+
+    # Replaced wholesale rather than merged: an in-place upgrade would leave
+    # the previous release's modules behind, and the app loads them by name.
+    sudo rm -rf "${CYBERCHEF_DIR}"
+    sudo install -d -m 0755 -o root -g root "${CYBERCHEF_DIR}"
+    sudo cp -a "${tmpdir}/cyberchef/." "${CYBERCHEF_DIR}/"
+    sudo chown -R root:root "${CYBERCHEF_DIR}"
+    sudo ln -sfn "${html}" "${CYBERCHEF_DIR}/index.html"
+    printf '%s\n' "${tag}" | sudo tee "${CYBERCHEF_DIR}/.version" > /dev/null
+    rm -rf "${tmpdir}"
+
+    # xdg-open, not a hard-coded browser: the VM ships Chrome but the user may
+    # well have made another browser the default.
+    {
+        printf '#!/bin/sh\n'
+        printf '# Set by dfir-tools.\n'
+        printf 'exec xdg-open %s/index.html\n' "${CYBERCHEF_DIR}"
+    } | sudo tee /usr/local/bin/cyberchef > /dev/null
+    sudo chmod 0755 /usr/local/bin/cyberchef
+
+    {
+        printf '[Desktop Entry]\n'
+        printf 'Type=Application\n'
+        printf 'Name=CyberChef\n'
+        printf 'Comment=The Cyber Swiss Army Knife - offline\n'
+        printf 'Exec=/usr/local/bin/cyberchef\n'
+        printf 'Icon=%s/images/cyberchef-128x128.png\n' "${CYBERCHEF_DIR}"
+        printf 'Terminal=false\n'
+        printf 'Categories=Utility;Security;\n'
+    } | sudo tee /usr/share/applications/cyberchef.desktop > /dev/null
+    sudo chmod 0644 /usr/share/applications/cyberchef.desktop
+
+    print_status "INFO" "Installed CyberChef ${tag}."
+}
+
+# No apt source, so dist-upgrade never sees it. install-cyberchef already
+# compares the installed tag with the latest release and returns early when
+# they match, so an update is just a re-run.
+function update-cyberchef() {
+    print_status "INFO" "Update CyberChef."
+    install-cyberchef
 }
 
 # https://github.com/mandiant/capa - identify capabilities in executables.
@@ -1017,6 +1116,27 @@ function install-apt-remnux() {
         sleuthkit \
         testdisk \
         tree 2>&1 | tee -a "$LOG" > /dev/null
+}
+
+function install-jdeserialize() {
+    print_status "INFO" "install-jdeserialize"
+    local jar="jdeserialize-1.2.jar"
+    if [[ ! -e "${DFIR_LIB}/${jar}" ]]; then
+        # Resolved relative to this file, not to a checkout path - same as the
+        # regripper wrapper above.
+        sudo install -D -m 644 -o root -g root \
+            "$(dirname "${BASH_SOURCE[0]}")/../lib/${jar}" "${DFIR_LIB}/${jar}"
+        print_status "INFO" "Installed ${jar} to ${DFIR_LIB}."
+    fi
+    if [[ ! -e /usr/local/bin/jdeserialize ]]; then
+        {
+            printf '#!/bin/sh\n'
+            printf '# Wrapper generated by dfir-tools for the jar in common/lib/.\n'
+            printf 'exec java -jar %s/%s -noclasses "$@"\n' "${DFIR_LIB}" "${jar}"
+        } | sudo tee /usr/local/bin/jdeserialize > /dev/null
+        sudo chmod 0755 /usr/local/bin/jdeserialize
+        print_status "INFO" "Installed the jdeserialize wrapper."
+    fi
 }
 
 function install-remnux() {
