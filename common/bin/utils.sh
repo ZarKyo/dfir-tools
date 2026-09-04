@@ -434,8 +434,15 @@ function install-cyberchef() {
     # The asset name carries the build hash (CyberChef_<sha>.zip) on recent
     # releases and the version (CyberChef_v10.19.4.zip) on older ones, hence
     # the loose pattern.
+    #
+    # The backslash is DOUBLED because the regex is written inside the jq
+    # program, where it is first a jq string literal: jq's lexer rejects "\."
+    # outright ("Invalid escape") and the filter never compiles. Contrast
+    # install-github-deb above, whose callers pass a single "\." - that pattern
+    # travels as --arg DATA, so jq never lexes it and Oniguruma sees the escape
+    # it expects.
     url="$(printf '%s' "${release}" | \
-        jq -r '.assets[] | select(.name | test("^CyberChef_.*\.zip$"; "i")) | .browser_download_url' | head -1)"
+        jq -r '.assets[] | select(.name | test("^CyberChef_.*\\.zip$"; "i")) | .browser_download_url' | head -1)"
     if [[ -z "${url}" ]]; then
         print_status "ERROR" "No CyberChef zip asset in release ${tag}."
         return 1
