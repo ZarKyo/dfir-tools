@@ -1174,7 +1174,8 @@ function install-remnux() {
         sudo mv remnux /usr/local/bin
         sudo apt install -y gnupg
         sudo systemctl stop ssh.service
-        sudo /usr/local/bin/remnux install --version=v2026.6.24 --mode=dedicated 2>&1 | tee -a "$LOG"
+        # No --version. Omitting it selects the newest release.
+        sudo /usr/local/bin/remnux install --mode=dedicated 2>&1 | tee -a "$LOG"
         sudo systemctl start ssh.service
         touch ~/.config/.remnux
         print_status "INFO" "REMnux installation finished."

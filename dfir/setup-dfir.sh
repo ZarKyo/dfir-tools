@@ -44,7 +44,9 @@ if [[ ! -e /usr/local/bin/remnux ]]; then
 fi
 
 sudo systemctl stop ssh.service
-sudo /usr/local/bin/remnux install --version=v2026.6.24 --mode=addon 2>&1 | tee -a "$LOG"
+
+# Without the flag cast takes releases[0], the newest non-prerelease.
+sudo /usr/local/bin/remnux install --mode=addon 2>&1 | tee -a "$LOG"
 sudo systemctl start ssh.service
 touch ~/.config/.remnux
 
