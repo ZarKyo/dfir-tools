@@ -43,7 +43,13 @@ print_status() {
     else
         printf "${tclr}%s - [%s] - %s${NC}\n" "$ts" "$tag" "$msg"
     fi
-    [[ -n "${LOG:-}" ]] && printf "%s - [%s] - %s\n" "$ts" "$tag" "$msg" >> "$LOG"
+    # `if`, not `[[ … ]] && …`: this is the last command of the function, so its
+    # status becomes print_status's. Most installers here END with a
+    # print_status call, so with LOG unset every one of them would return 1 and
+    # take the caller's `set -e` down with it.
+    if [[ -n "${LOG:-}" ]]; then
+        printf "%s - [%s] - %s\n" "$ts" "$tag" "$msg" >> "$LOG"
+    fi
 }
 
 # Check root rights
@@ -657,8 +663,20 @@ function relocate-vol3() {
 function install-volatility() {
     print_status "INFO" "install-volatility"
     if [[ -d "${DFIR_SRC}"/vol3 ]]; then
-        [[ ! -e ~/vol3 ]] && ln -sfn "${DFIR_SRC}"/vol3 ~/vol3
-        return
+        # Recreate the convenience symlink only when nothing is there: -n stops
+        # ln from following an existing ~/vol3 DIRECTORY, but pointed at one it
+        # would still create ~/vol3/vol3.
+        #
+        # `if` rather than `[[ … ]] && …`, and `return 0` rather than a bare
+        # `return`: a bare return hands back the status of the last command, and
+        # here that is the test itself. Second time round - which is exactly what
+        # a DFIR build does, setup-dfir.sh re-entering setup-sift.sh - ~/vol3
+        # exists, the test is false, the function returns 1, and the caller's
+        # `set -e` kills the whole install with no message but "install-volatility".
+        if [[ ! -e ~/vol3 ]]; then
+            ln -sfn "${DFIR_SRC}"/vol3 ~/vol3
+        fi
+        return 0
     fi
     print_status "INFO" "Install volatility3 via vol_ez_install."
     {
