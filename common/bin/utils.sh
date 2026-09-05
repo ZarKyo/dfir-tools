@@ -1167,15 +1167,22 @@ function install-jdeserialize() {
 function install-remnux() {
     if [[ ! -e ~/.config/.remnux ]]; then
         print_status "INFO" "Start installation of REMnux."
-        rm -f remnux
-        wget --quiet https://REMnux.org/remnux
-        mv remnux remnux
-        chmod +x remnux
-        sudo mv remnux /usr/local/bin
+        # Staged through /tmp, not the current directory: the CWD here is the
+        # dfir-tools checkout, which already holds a `remnux` DIRECTORY. Fetching
+        # into "." meant `rm -f remnux` failing on that directory, wget landing in
+        # remnux/remnux, and `mv remnux remnux` refusing to move a file onto
+        # itself - each of them fatal under `set -e`.
+        rm -f /tmp/remnux
+        wget --quiet https://REMnux.org/remnux -O /tmp/remnux
+        chmod +x /tmp/remnux
+        sudo mv /tmp/remnux /usr/local/bin/remnux
         sudo apt install -y gnupg
         sudo systemctl stop ssh.service
-        # No --version. Omitting it selects the newest release.
-        sudo /usr/local/bin/remnux install --mode=dedicated 2>&1 | tee -a "$LOG"
+        # No --version, and run from a neutral directory - both reasons are
+        # spelled out in dfir/setup-dfir.sh: cast reads only the first page of
+        # releases, so a pin ages out; and it resolves a bare distro name against
+        # the CWD first, so a neighbouring remnux/ makes it a local install.
+        ( cd /tmp && sudo /usr/local/bin/remnux install --mode=dedicated ) 2>&1 | tee -a "$LOG"
         sudo systemctl start ssh.service
         touch ~/.config/.remnux
         print_status "INFO" "REMnux installation finished."

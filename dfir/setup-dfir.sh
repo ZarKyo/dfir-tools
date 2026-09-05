@@ -46,7 +46,16 @@ fi
 sudo systemctl stop ssh.service
 
 # Without the flag cast takes releases[0], the newest non-prerelease.
-sudo /usr/local/bin/remnux install --mode=addon 2>&1 | tee -a "$LOG"
+#
+# Run it from a NEUTRAL directory. cast decides between a GitHub distro and a
+# local one with a bare `os.Stat(distroName)` relative to the process CWD
+# (pkg/commands/install/install.go), and dfir.sh leaves us in
+# ~/src/git/dfir-tools - which contains a remnux/ directory. cast then takes
+# "remnux" for a local source and dies on the missing remnux/.cast.yml.
+#
+# That stat happens BEFORE the "name@version" split, which is why the old pin
+# hid this: "remnux@v2026.6.24" matches no directory. Removing the pin exposed it.
+( cd /tmp && sudo /usr/local/bin/remnux install --mode=addon ) 2>&1 | tee -a "$LOG"
 sudo systemctl start ssh.service
 touch ~/.config/.remnux
 
