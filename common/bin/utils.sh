@@ -1164,6 +1164,49 @@ function install-jdeserialize() {
     fi
 }
 
+# The REMnux reference sheets.
+#
+# They are NOT part of a `remnux install`: they ship pre-placed on the official
+# REMnux OVA, and no salt state in remnux/salt-states writes into a user's
+# Desktop or Documents - in any mode, addon or dedicated. So a machine built by
+# cast has the whole toolset and none of the paperwork. Fetch it.
+#
+# Lenny Zeltser publishes these under the Creative Commons Attribution 3.0
+# licence, which is what makes shipping them inside an image legitimate; the
+# attribution is on each page, and SOURCES.txt records where they came from.
+#
+# ~/Documents/REMnux on purpose: that is exactly where cleanup-remnux() would
+# have put them, and where sift-iso-builder's apply-system-defaults.sh looks
+# when it relocates them into /usr/local/share/remnux-docs for an image.
+REMNUX_DOCS="${HOME}/Documents/REMnux"
+
+function install-remnux-docs() {
+    print_status "INFO" "install-remnux-docs"
+    local base="https://zeltser.com/media/docs"
+    local doc n=0
+    mkdir -p "${REMNUX_DOCS}"
+    for doc in remnux-malware-analysis-tips \
+               analyzing-malicious-document-files \
+               malware-analysis-cheat-sheet; do
+        [[ -s "${REMNUX_DOCS}/${doc}.pdf" ]] && continue
+        # Never fatal: no cheat sheet is worth failing a 45-minute build for.
+        if wget --quiet -O "${REMNUX_DOCS}/${doc}.pdf" "${base}/${doc}.pdf"; then
+            n=$((n + 1))
+        else
+            rm -f "${REMNUX_DOCS}/${doc}.pdf"
+            print_status "WARNING" "Could not fetch ${doc}.pdf - skipped."
+        fi
+    done
+    {
+        printf 'REMnux and malware-analysis reference sheets by Lenny Zeltser.\n'
+        printf 'Source:  https://zeltser.com/cheat-sheets/\n'
+        printf 'Licence: Creative Commons Attribution 3.0\n'
+        printf 'Fetched by dfir-tools (common/bin/utils.sh :: install-remnux-docs),\n'
+        printf 'because a `remnux install` ships no reference documents of its own.\n'
+    } > "${REMNUX_DOCS}/SOURCES.txt"
+    print_status "INFO" "REMnux reference sheets in ${REMNUX_DOCS} (${n} fetched)."
+}
+
 function install-remnux() {
     if [[ ! -e ~/.config/.remnux ]]; then
         print_status "INFO" "Start installation of REMnux."

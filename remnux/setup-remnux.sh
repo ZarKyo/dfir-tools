@@ -81,6 +81,7 @@ install-apt-remnux
 
 # Bundled jar + /usr/local/bin wrapper
 install-jdeserialize
+install-remnux-docs
 
 # Install aliases for REMnux. This way we can update them without
 # affecting .bash_aliases.

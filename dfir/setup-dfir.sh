@@ -61,6 +61,7 @@ touch ~/.config/.remnux
 
 install-apt-remnux
 install-jdeserialize
+install-remnux-docs
 cleanup-remnux
 
 # REMnux aliases (SIFT aliases already deployed by setup-sift.sh)
