@@ -1164,12 +1164,16 @@ function install-jdeserialize() {
     fi
 }
 
-# The REMnux reference sheets.
+# The REMnux and incident-response reference sheets.
 #
 # They are NOT part of a `remnux install`: they ship pre-placed on the official
 # REMnux OVA, and no salt state in remnux/salt-states writes into a user's
 # Desktop or Documents - in any mode, addon or dedicated. So a machine built by
 # cast has the whole toolset and none of the paperwork. Fetch it.
+#
+# The list has grown past malware analysis: the incident-response sheets and the
+# writing guide are useful on a DFIR workstation whatever the case is, and they
+# come from the same author under the same licence, so they ride along.
 #
 # Lenny Zeltser publishes these under the Creative Commons Attribution 3.0
 # licence, which is what makes shipping them inside an image legitimate; the
@@ -1183,14 +1187,24 @@ REMNUX_DOCS="${HOME}/Documents/REMnux"
 function install-remnux-docs() {
     print_status "INFO" "install-remnux-docs"
     local base="https://zeltser.com/media/docs"
+    # zeltser.com answers 403 Forbidden to wget's own User-Agent - every URL,
+    # the cheat-sheets index page included - so without this every fetch below
+    # failed and the function quietly produced a directory holding nothing but
+    # SOURCES.txt. The URLs were never wrong. Verified on a DFIR VM: default UA
+    # 403 on every one of them, browser UA 200 and a real PDF each time.
+    local ua='Mozilla/5.0 (X11; Linux x86_64; rv:128.0) Gecko/20100101 Firefox/128.0'
     local doc n=0
     mkdir -p "${REMNUX_DOCS}"
     for doc in remnux-malware-analysis-tips \
                analyzing-malicious-document-files \
-               malware-analysis-cheat-sheet; do
+               malware-analysis-cheat-sheet \
+               reverse-engineering-malicious-code-tips \
+               security-incident-log-review-checklist \
+               security-incident-survey-cheat-sheet \
+               writing-tips-for-it-professionals; do
         [[ -s "${REMNUX_DOCS}/${doc}.pdf" ]] && continue
         # Never fatal: no cheat sheet is worth failing a 45-minute build for.
-        if wget --quiet -O "${REMNUX_DOCS}/${doc}.pdf" "${base}/${doc}.pdf"; then
+        if wget --quiet --user-agent="${ua}" -O "${REMNUX_DOCS}/${doc}.pdf" "${base}/${doc}.pdf"; then
             n=$((n + 1))
         else
             rm -f "${REMNUX_DOCS}/${doc}.pdf"
@@ -1198,7 +1212,8 @@ function install-remnux-docs() {
         fi
     done
     {
-        printf 'REMnux and malware-analysis reference sheets by Lenny Zeltser.\n'
+        printf 'REMnux, malware-analysis and incident-response reference sheets\n'
+        printf 'by Lenny Zeltser.\n'
         printf 'Source:  https://zeltser.com/cheat-sheets/\n'
         printf 'Licence: Creative Commons Attribution 3.0\n'
         printf 'Fetched by dfir-tools (common/bin/utils.sh :: install-remnux-docs),\n'
