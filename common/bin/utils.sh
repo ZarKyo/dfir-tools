@@ -52,6 +52,54 @@ print_status() {
     fi
 }
 
+# Every installer here funnels command output into $LOG and prints only its own
+# progress lines, so a failure under `set -e` kills the script without a word on
+# screen. Under an automated build that is fatal to diagnose: packer deletes the
+# VM - and the log inside it - before anyone can read it, which is how a 40
+# minute build ends in "Script exited with non-zero exit status: 1" and nothing
+# else. Report what failed and the tail of the log on the way out.
+LOG_TAIL_LINES="${LOG_TAIL_LINES:-80}"
+_failure_reported=0
+
+# The installers wrap their work in `{ ... } >> "$LOG" 2>&1`, and the trap fires
+# INSIDE that group - so a plain `>&2` report would be written into the very log
+# it is trying to surface. Keep a copy of the original stderr and write to that.
+exec 9>&2
+
+function _report_failure() {
+    local rc=$1 line=$2 cmd=$3
+
+    # The ERR trap fires even where errexit is off, but a `set +e` region is one
+    # whose failures are deliberately tolerated (install-sift, say) and must stay
+    # quiet. Reporting only while errexit is on mirrors "the shell is about to
+    # die", which is the only case worth a report.
+    [[ $- == *e* ]] || return 0
+    # errexit unwinds through every enclosing function and fires the trap at each
+    # level; the innermost one is the precise one, the rest are noise.
+    [[ ${_failure_reported} -eq 0 ]] || return 0
+    _failure_reported=1
+
+    local red="${TextColor[ERROR]}"
+
+    {
+        printf "${red}%s - [ERROR] - Aborted: '%s' failed (exit %s) at %s:%s${NC}\n" \
+            "$(date '+%Y-%m-%d %H:%M:%S')" "$cmd" "$rc" "${BASH_SOURCE[1]:-?}" "$line"
+        if [[ -s "${LOG:-}" ]]; then
+            printf "${red}--- last %s lines of %s ---${NC}\n" "$LOG_TAIL_LINES" "$LOG"
+            tail -n "$LOG_TAIL_LINES" "$LOG"
+            printf "${red}--- end of %s ---${NC}\n" "$LOG"
+        fi
+    } >&9
+}
+
+# -E so the trap is inherited by functions and subshells: without it nothing
+# fires, since every installer is a function. Not in an interactive shell, which
+# nothing here sources but which the trap would make unusable.
+if [[ $- != *i* ]]; then
+    set -E
+    trap '_report_failure "$?" "$LINENO" "$BASH_COMMAND"' ERR
+fi
+
 # Check root rights
 function check_root() {
     if [[ $EUID -ne 0 ]]; then
@@ -1049,8 +1097,23 @@ function install-sift() {
         # Does not validate gpg at the moment due to problems downloading keys in some networks...
         sudo dpkg -i cast*.deb
         sudo systemctl stop ssh.service
-        sudo /usr/bin/cast install teamdfir/sift-saltstack 2>&1 | tee -a "$LOG"
+        # This is the one step whose failure the caller deliberately tolerates
+        # (`set +e` around install-sift in setup-sift.sh), and tolerated must not
+        # mean invisible: without this the function went on to stamp
+        # ~/.config/.sift and print "SIFT installation finished." whatever
+        # happened, so a failed install was recorded as done - never retried on a
+        # re-run - and the first sign of trouble was some unrelated installer
+        # dying later on a half-built system.
+        local cast_rc=0
+        sudo /usr/bin/cast install teamdfir/sift-saltstack 2>&1 | tee -a "$LOG" || cast_rc=$?
         sudo systemctl start ssh.service
+        if [[ $cast_rc -ne 0 ]]; then
+            print_status "ERROR" "cast install exited ${cast_rc}: the SIFT package set is INCOMPLETE. See $LOG."
+            # No stamp: the next run retries instead of trusting a broken install.
+            # The caller decides whether that is fatal - it is under `set -e`, and
+            # tolerated inside the `set +e` region of setup-sift.sh.
+            return "$cast_rc"
+        fi
         touch ~/.config/.sift
         print_status "INFO" "SIFT installation finished."
     fi

@@ -66,8 +66,16 @@ install-docker
 
 set +e
 install-sift
+sift_rc=$?
 cleanup-sift
 set -e
+
+# Tolerated, but said out loud: everything below installs on top of SIFT, so if
+# this failed the later installers are running on a half-built system and their
+# own failures are symptoms, not causes.
+if [[ $sift_rc -ne 0 ]]; then
+    print_status "WARNING" "install-sift failed (exit ${sift_rc}) - continuing, but this is NOT a complete SIFT. See $LOG."
+fi
 
 create-common-directories
 create-docker-directories
