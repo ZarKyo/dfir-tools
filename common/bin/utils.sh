@@ -1202,7 +1202,7 @@ function install-remnux-docs() {
         printf 'Source:  https://zeltser.com/cheat-sheets/\n'
         printf 'Licence: Creative Commons Attribution 3.0\n'
         printf 'Fetched by dfir-tools (common/bin/utils.sh :: install-remnux-docs),\n'
-        printf 'because a `remnux install` ships no reference documents of its own.\n'
+        printf 'because a "remnux install" ships no reference documents of its own.\n'
     } > "${REMNUX_DOCS}/SOURCES.txt"
     print_status "INFO" "REMnux reference sheets in ${REMNUX_DOCS} (${n} fetched)."
 }
