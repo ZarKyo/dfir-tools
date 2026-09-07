@@ -528,7 +528,7 @@ function install-cyberchef() {
     printf '%s\n' "${tag}" | sudo tee "${CYBERCHEF_DIR}/.version" > /dev/null
     rm -rf "${tmpdir}"
 
-    # xdg-open, not a hard-coded browser: the VM ships Chrome but the user may
+    # xdg-open, not a hard-coded browser: the VM ships Chromium but the user may
     # well have made another browser the default.
     {
         printf '#!/bin/sh\n'
@@ -671,24 +671,100 @@ function enable-new-didier() {
     fi
 }
 
-# Install Google Chrome
-function install-google-chrome() {
-    if [[ "$(uname -m)" == "aarch64" ]]; then
-        if ! dpkg --status chromium > /dev/null 2>&1; then
-            print_status "INFO" "Installing chromium."
-            DEBIAN_FRONTEND=noninteractive sudo apt -yqq install chromium 2>&1 | tee -a "$LOG" > /dev/null
-        fi
-    else
-        if ! dpkg --status google-chrome-stable > /dev/null 2>&1; then
-            print_status "INFO" "Installing Google Chrome."
-            cd /tmp || { print_status "ERROR" "Couldn't cd /tmp in install-google-chrome."; exit 1; }
-            wget https://dl.google.com/linux/direct/google-chrome-stable_current_amd64.deb >> "$LOG" 2>&1
-            sudo dpkg -i google-chrome-stable_current_amd64.deb 2>&1 | tee -a "$LOG" > /dev/null || true
-            sudo apt -qq -f -y install 2>&1 | tee -a "$LOG" > /dev/null
-            rm -f google-chrome-stable_current_amd64.deb
-        fi
+# Chromium, from ppa:xtradeb/apps - replaces Google Chrome on this image.
+#
+# WHY A PPA. Ubuntu 24.04 ships no chromium deb at all: `chromium` has no
+# candidate, and `chromium-browser` is an empty transitional package
+# (2:1snap1-0ubuntu2, Depends: debconf) whose only job is to pull snapd and
+# install the snap. Unusable here twice over - sift-iso-builder purges snapd on
+# purpose (ten failed mount units and 3.4s of boot, its docs/04 section 3.9),
+# and penguins-eggs excludes snap payloads from the ISO, so a snap browser
+# reaches the installed system as an empty /snap/chromium/<rev> directory.
+#
+# xtradeb publishes a real .deb. Verified on an image installed from the ISO:
+# chromium 152.0.7977.82-1xtradeb1.2404.1, pulling only chromium-common,
+# chromium-sandbox and libopenh264-7. No snapd.
+#
+# The key is fetched by full fingerprint from the Ubuntu keyserver and pinned
+# with signed-by, like install-vscodium does, rather than going through
+# add-apt-repository: that keeps the trust explicit and drops the dependency on
+# software-properties-common, which nothing here installs on purpose.
+#
+# One code path for every architecture. The old aarch64 branch installed the
+# Ubuntu `chromium` package, which on noble does not exist - it had been dead
+# for as long as the image has been built on 24.04.
+XTRADEB_KEY_FPR=5301FA4FD93244FBC6F6149982BB6851C64F6880
+function install-chromium() {
+    # Migration. An image built before this change carries Google Chrome AND
+    # Google's apt source, which would go on updating a browser this project no
+    # longer installs. The source is dropped with the package.
+    if dpkg --status google-chrome-stable > /dev/null 2>&1; then
+        print_status "INFO" "Removing Google Chrome (replaced by Chromium)."
+        sudo DEBIAN_FRONTEND=noninteractive apt -yqq purge google-chrome-stable 2>&1 | tee -a "$LOG" > /dev/null
+        sudo rm -f /etc/apt/sources.list.d/google-chrome.sources \
+                   /etc/apt/sources.list.d/google-chrome.list*
     fi
+
+    if dpkg --status chromium > /dev/null 2>&1; then
+        return 0
+    fi
+    local key=/usr/share/keyrings/xtradeb-archive-keyring.gpg
+    # Remembered, not assumed absent: this has to detect snapd being dragged
+    # BACK in by a fallback, and a machine that already had it for some other
+    # reason must not make that check cry wolf.
+    local snapd_before=0
+    dpkg --status snapd > /dev/null 2>&1 && snapd_before=1
+    print_status "INFO" "Installing Chromium."
+
+    # The key comes over plain HTTPS and through --dearmor, exactly like
+    # install-vscodium - NOT through `gpg --recv-keys`. That needs dirmngr,
+    # which nothing here installs, and when it is missing gpg still creates an
+    # EMPTY keyring and exits 0-ish: apt then rejects the PPA as unsigned and
+    # `apt install chromium` falls straight through to chromium-browser, which
+    # pulls snapd and installs the snap. That failure was reproduced on a test
+    # VM, silently, which is why every step below is checked.
+    if ! curl -fsSL "https://keyserver.ubuntu.com/pks/lookup?op=get&search=0x${XTRADEB_KEY_FPR}" \
+         | sudo gpg --dearmor --yes -o "${key}" 2>> "$LOG"; then
+        print_status "ERROR" "Could not fetch the xtradeb signing key - Chromium NOT installed."
+        sudo rm -f "${key}"
+        return 1
+    fi
+    # Pinning is the whole point, so confirm we got the key we asked for rather
+    # than whatever the keyserver felt like returning.
+    if ! sudo gpg --show-keys --with-colons "${key}" 2>/dev/null \
+         | grep -q "^fpr:::::::::${XTRADEB_KEY_FPR}:"; then
+        print_status "ERROR" "xtradeb key fingerprint mismatch - refusing to add the repo."
+        sudo rm -f "${key}"
+        return 1
+    fi
+    sudo chmod 0644 "${key}"
+    printf 'deb [signed-by=%s] https://ppa.launchpadcontent.net/xtradeb/apps/ubuntu %s main\n' \
+        "${key}" "$(lsb_release -cs)" | \
+        sudo tee /etc/apt/sources.list.d/xtradeb-apps.list > /dev/null
+    sudo apt-get -qq update >> "$LOG" 2>&1
+
+    # Gate on the candidate actually coming from xtradeb. Without this an
+    # unreachable or unsigned PPA is not an error at all - it just means the
+    # only remaining candidate is the chromium-browser snap shim.
+    if ! apt-cache policy chromium 2>/dev/null | grep -q xtradeb; then
+        print_status "ERROR" "xtradeb PPA unusable - refusing to install, the fallback would be the snap."
+        sudo rm -f /etc/apt/sources.list.d/xtradeb-apps.list "${key}"
+        return 1
+    fi
+    sudo DEBIAN_FRONTEND=noninteractive apt-get -yqq install chromium >> "$LOG" 2>&1
+
+    # Belt and braces: a real deb, and no snapd dragged back in behind it.
+    if ! dpkg --status chromium > /dev/null 2>&1; then
+        print_status "ERROR" "Chromium install failed - see $LOG."
+        return 1
+    fi
+    if [[ ${snapd_before} -eq 0 ]] && dpkg --status snapd > /dev/null 2>&1; then
+        print_status "ERROR" "snapd was pulled in - the snap shim won. Check $LOG."
+        return 1
+    fi
+    print_status "INFO" "Installed Chromium."
 }
+
 
 # Install Volatility 3 via Abyss-W4tcher's vol_ez_install (docker-based).
 # https://github.com/volatilityfoundation/volatility3

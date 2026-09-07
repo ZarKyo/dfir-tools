@@ -28,7 +28,7 @@ if [[ $1 == "-h" || $1 == "--help" || $1 == "-l" || $1 == "--list" ]]; then
         grep -v check_root |
         grep -v install-apt-remnux |
         grep -v install-general-tools |
-        grep -v install-google-chrome |
+        grep -v install-chromium |
         grep -v install-remnux |
         grep -v install-sift |
         grep -v install-utils |

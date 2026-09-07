@@ -81,7 +81,7 @@ create-common-directories
 create-docker-directories
 create-cases-not-mounted
 
-install-google-chrome
+install-chromium
 
 print_status "INFO" "Setup virtualenvwrapper."
 # virtualenvwrapper.sh uses uninitialized variables (e.g. out_args) that

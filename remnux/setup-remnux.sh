@@ -65,7 +65,7 @@ create-common-directories
 create-docker-directories
 create-cases-not-mounted
 
-install-google-chrome
+install-chromium
 
 print_status "INFO" "Setup virtualenvwrapper."
 set +u

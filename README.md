@@ -28,7 +28,7 @@ cd ~/src/git/dfir-tools
 - Updates Ubuntu and installs general packages (vim, tshark, curl, git, tmux, sqlite3, jq, hdparm, nvme-cli, flameshot, remmina, meld…)
 - Installs `open-vm-tools-desktop` for VMware
 - Installs SIFT via `cast install teamdfir/sift-saltstack`
-- Installs Google Chrome
+- Installs Chromium (ppa:xtradeb/apps)
 - Installs desktop tools shipped as a `.deb` or their own apt repo: VSCodium, balenaEtcher, drawio, VeraCrypt
 - Installs CyberChef offline in `/opt/cyberchef`, with a `cyberchef` launcher and a desktop entry
 - Sets up Python virtualenvwrapper with isolated environments
@@ -42,7 +42,7 @@ It ends by printing the manual steps left to do - among them `make dotfiles`, wh
 - Updates Ubuntu and installs general packages
 - Installs `open-vm-tools-desktop` for VMware
 - Installs REMnux via `remnux install`
-- Installs Google Chrome
+- Installs Chromium (ppa:xtradeb/apps)
 - Sets up Python virtualenvwrapper with isolated environments
 - Installs additional tools: chaosreader, pcodedmp, sleuthkit, testdisk
 - Deploys REMnux aliases to `~/.remnux_aliases`
