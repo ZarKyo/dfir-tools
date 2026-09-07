@@ -239,7 +239,7 @@ function create-common-directories() {
     setup-shared-dirs
 
     local mnt_dirs=(
-        aff bde e01 evidence1 ewf ewf-mount
+        aff bde e01 evidence1 ewf ewf-mount1 ewf-mount2
         ext ext4 hgfs iscsi
         linux-mount1 linux-mount2 linux-mount3
         linux-mount4 linux-mount5 linux-mount6
