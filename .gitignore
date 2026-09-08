@@ -1,0 +1,2 @@
+# Sortie de `make test` (shellcheck), regeneree a chaque run.
+checkstyle.out

@@ -17,8 +17,9 @@ if ! sudo -n true 2>/dev/null; then
     sudo true
 fi
 
-# shellcheck source=/dev/null
+# shellcheck source-path=SCRIPTDIR
 if [[ -e  ~/src/git/dfir-tools/common/bin/utils.sh ]]; then
+    # shellcheck source=../common/bin/utils.sh
     .  ~/src/git/dfir-tools/common/bin/utils.sh
 else
     printf '\033[0;31mCant find utils.sh.\033[0m\n' >&2

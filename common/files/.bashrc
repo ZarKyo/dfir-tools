@@ -1,4 +1,5 @@
 # shellcheck shell=bash
+# shellcheck source-path=SCRIPTDIR
 # ~/.bashrc: executed by bash(1) for non-login shells.
 # see /usr/share/doc/bash/examples/startup-files (in the package bash-doc)
 # for examples
@@ -87,27 +88,27 @@ alias ll='ls -l'
 alias la='ls -A'
 
 if [ -f ~/.bash_aliases ]; then
-    # shellcheck source=/dev/null
+    # shellcheck source=.bash_aliases
     . ~/.bash_aliases
 fi
 
 if [ -f ~/.sift_aliases ]; then
-    # shellcheck source=/dev/null
+    # shellcheck source=../../sift/.sift_aliases
     . ~/.sift_aliases
 fi
 
 if [ -f ~/.remnux_aliases ]; then
-    # shellcheck source=/dev/null
+    # shellcheck source=../../remnux/.remnux_aliases
     . ~/.remnux_aliases
 fi
 
 # enable programmable completion features
 if ! shopt -oq posix; then
     if [ -f /usr/share/bash-completion/bash_completion ]; then
-        # shellcheck source=/dev/null
+        # shellcheck source=/dev/null  # shipped by the bash-completion package
         . /usr/share/bash-completion/bash_completion
     elif [ -f /etc/bash_completion ]; then
-        # shellcheck source=/dev/null
+        # shellcheck source=/dev/null  # shipped by the bash-completion package
         . /etc/bash_completion
     fi
 fi
@@ -149,5 +150,5 @@ export PATH=$HOME/bin:/opt/dfir-src/didierstevenssuite:$PATH
 # System-wide, so the venvs survive imaging and are shared by every user.
 # /etc/profile.d/dfir-tools.sh sets the same value for login shells.
 export WORKON_HOME=/opt/dfir-venvs
-# shellcheck source=/dev/null
+# shellcheck source=/dev/null  # shipped by the virtualenvwrapper package, not in this repo
 source /usr/share/virtualenvwrapper/virtualenvwrapper.sh

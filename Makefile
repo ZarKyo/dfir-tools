@@ -30,7 +30,8 @@ update-dfir:
 	./sift/update-sift.sh
 
 test:
-	shellcheck -f checkstyle common/bin/*.sh > checkstyle.out || true
-	shellcheck -f checkstyle sift/*.sh >> checkstyle.out || true
-	shellcheck -f checkstyle remnux/*.sh >> checkstyle.out || true
-	shellcheck -f checkstyle dfir/*.sh >> checkstyle.out || true
+	shellcheck -x -f checkstyle common/bin/*.sh > checkstyle.out || true
+	shellcheck -x -f checkstyle sift/*.sh >> checkstyle.out || true
+	shellcheck -x -f checkstyle remnux/*.sh >> checkstyle.out || true
+	shellcheck -x -f checkstyle dfir/*.sh >> checkstyle.out || true
+	shellcheck -x -f checkstyle common/files/.bashrc common/files/.bash_aliases sift/.sift_aliases remnux/.remnux_aliases >> checkstyle.out || true

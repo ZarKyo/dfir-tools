@@ -14,7 +14,8 @@ export LOG
 SCRIPT_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
 
 # Source dfir-tools utils.sh (defines install-*/update-* functions)
-# shellcheck source=/dev/null
+# shellcheck source-path=SCRIPTDIR
+# shellcheck source=utils.sh
 source "${SCRIPT_DIR}/utils.sh"
 
 if [[ $1 == "-h" || $1 == "--help" || $1 == "-l" || $1 == "--list" ]]; then

@@ -42,8 +42,9 @@ fi
 # Source
 ####################
 
-# shellcheck source=/dev/null
+# shellcheck source-path=SCRIPTDIR
 if [[ -e "${SCRIPT_DIR}/../common/bin/utils.sh" ]]; then
+    # shellcheck source=../common/bin/utils.sh
     . "${SCRIPT_DIR}/../common/bin/utils.sh"
 else
     printf '\033[0;31mCant find utils.sh.\033[0m\n' >&2
@@ -87,7 +88,7 @@ print_status "INFO" "Setup virtualenvwrapper."
 # virtualenvwrapper.sh uses uninitialized variables (e.g. out_args) that
 # trip set -u; disable it only for the source call.
 set +u
-# shellcheck source=/dev/null
+# shellcheck source=/dev/null  # shipped by the virtualenvwrapper package, not in this repo
 source /usr/share/virtualenvwrapper/virtualenvwrapper.sh
 set -u
 
