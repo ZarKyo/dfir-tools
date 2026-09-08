@@ -731,8 +731,14 @@ function install-chromium() {
     fi
     # Pinning is the whole point, so confirm we got the key we asked for rather
     # than whatever the keyserver felt like returning.
-    if ! sudo gpg --show-keys --with-colons "${key}" 2>/dev/null \
-         | grep -q "^fpr:::::::::${XTRADEB_KEY_FPR}:"; then
+    #
+    # Captured first, NOT piped into grep: these scripts run under `pipefail`,
+    # and `grep -q` exits at the first match, which kills the writer with SIGPIPE
+    # (141) and makes the whole pipeline "fail" precisely when the match IS
+    # found. See the gate below, where that cost a build.
+    local keyinfo
+    keyinfo="$(sudo gpg --show-keys --with-colons "${key}" 2>/dev/null || true)"
+    if ! grep -q "^fpr:::::::::${XTRADEB_KEY_FPR}:" <<< "${keyinfo}"; then
         print_status "ERROR" "xtradeb key fingerprint mismatch - refusing to add the repo."
         sudo rm -f "${key}"
         return 1
@@ -741,35 +747,31 @@ function install-chromium() {
     printf 'deb [signed-by=%s] https://ppa.launchpadcontent.net/xtradeb/apps/ubuntu %s main\n' \
         "${key}" "$(lsb_release -cs)" | \
         sudo tee /etc/apt/sources.list.d/xtradeb-apps.list > /dev/null
-    # Refresh ONLY this source, and RETRY. Two reasons, both learned from a build
-    # that died here with an empty log while the PPA was demonstrably healthy:
-    #   - a single try makes a transient hiccup fatal to a 40-minute provisioning
-    #     run, since setup-sift.sh runs under `set -e`;
-    #   - the scoped update takes ~2s against ~1 minute for a full one, so
-    #     retrying is cheap. sourceparts=- and List-Cleanup=0 are what confine it
-    #     to our file without apt discarding every other source's lists.
-    # The output goes to the log at normal verbosity: -qq hid the one thing that
-    # would have explained the failure.
-    local attempt visible=0
-    for attempt in 1 2 3; do
-        sudo apt-get update >> "$LOG" 2>&1 \
-            -o Dir::Etc::sourcelist="sources.list.d/xtradeb-apps.list" \
-            -o Dir::Etc::sourceparts="-" \
-            -o APT::Get::List-Cleanup="0"
-        # Gate on the candidate actually coming from xtradeb. Without this an
-        # unreachable or unsigned PPA is not an error at all - it just means the
-        # only remaining candidate is the chromium-browser snap shim.
-        if apt-cache policy chromium 2>/dev/null | grep -q xtradeb; then
-            visible=1
-            break
-        fi
-        [[ ${attempt} -lt 3 ]] && {
-            print_status "INFO" "xtradeb candidate not visible (try ${attempt}/3), retrying."
-            sleep 5
-        }
-    done
-    if [[ ${visible} -eq 0 ]]; then
-        print_status "ERROR" "xtradeb PPA unusable after 3 tries - refusing to install, the fallback would be the snap. See $LOG."
+    # Refresh ONLY this source: ~2s against ~1 minute for a full update, and the
+    # output goes to the log at normal verbosity. sourceparts=- and List-Cleanup=0
+    # are what confine the run to our file without apt discarding every other
+    # source's lists.
+    sudo apt-get update >> "$LOG" 2>&1 \
+        -o Dir::Etc::sourcelist="sources.list.d/xtradeb-apps.list" \
+        -o Dir::Etc::sourceparts="-" \
+        -o APT::Get::List-Cleanup="0"
+
+    # Gate on the candidate actually coming from xtradeb. Without this an
+    # unreachable or unsigned PPA is not an error at all - it just means the only
+    # remaining candidate is the chromium-browser snap shim.
+    #
+    # DO NOT rewrite this as `apt-cache policy chromium | grep -q xtradeb`. These
+    # scripts run under `pipefail`: `grep -q` exits at the first match, apt-cache
+    # is killed by SIGPIPE (141), and the pipeline reports failure exactly when
+    # the match IS found - so that spelling can never pass. It cost two 35-minute
+    # builds, and it is invisible in an interactive shell, where pipefail is off.
+    # Capture first, match after.
+    local policy
+    policy="$(apt-cache policy chromium 2>/dev/null || true)"
+    if [[ ${policy} != *xtradeb* ]]; then
+        print_status "ERROR" "xtradeb PPA unusable - refusing to install, the fallback would be the snap."
+        # The policy output is the evidence; the source and key are about to go.
+        printf 'apt-cache policy chromium:\n%s\n' "${policy}" >> "$LOG"
         sudo rm -f /etc/apt/sources.list.d/xtradeb-apps.list "${key}"
         return 1
     fi
@@ -938,7 +940,7 @@ function update-chaosreader() {
 function install-floss() {
     print_status "INFO" "install-floss"
     if [[ ! -e /usr/local/bin/floss ]]; then
-        local url tmpdir
+        local url tmpdir ftype
         url="$(curl -s https://api.github.com/repos/mandiant/flare-floss/releases/latest | \
             jq -r '.assets[] | select(.name | test("linux"; "i")) | .browser_download_url' | head -1)"
         if [[ -z "$url" ]]; then
@@ -947,7 +949,10 @@ function install-floss() {
         fi
         tmpdir="$(mktemp -d)"
         wget -q -O "${tmpdir}/floss_dl" "$url" >> "$LOG" 2>&1
-        if file "${tmpdir}/floss_dl" | grep -q -i 'zip'; then
+        # Captured, not piped: `grep -q` + pipefail kills the writer with SIGPIPE
+        # on a match - see install-chromium.
+        ftype="$(file "${tmpdir}/floss_dl" 2>/dev/null || true)"
+        if grep -qi 'zip' <<< "${ftype}"; then
             unzip -q "${tmpdir}/floss_dl" -d "${tmpdir}" >> "$LOG" 2>&1
             sudo install -m 755 -o root -g root "${tmpdir}/floss" /usr/local/bin/floss
         else
@@ -1220,7 +1225,13 @@ function install-sift() {
 function update-sift() {
     START_FRESHCLAM=1
     print_status "INFO" "Start SIFT upgrade."
-    if sudo service clamav-freshclam status 2>&1 | tee -a "$LOG" | grep -q "Active: active"; then
+    # Captured, not piped through tee into `grep -q`: under pipefail, grep exiting
+    # at the match kills tee with SIGPIPE and the test reports "not active" for a
+    # service that IS active - see install-chromium.
+    local freshclam_status
+    freshclam_status="$(sudo service clamav-freshclam status 2>&1 || true)"
+    printf '%s\n' "${freshclam_status}" >> "$LOG"
+    if grep -q "Active: active" <<< "${freshclam_status}"; then
         sudo service clamav-freshclam stop 2>&1 | tee -a "$LOG" > /dev/null
         START_FRESHCLAM=0
     fi
