@@ -741,13 +741,35 @@ function install-chromium() {
     printf 'deb [signed-by=%s] https://ppa.launchpadcontent.net/xtradeb/apps/ubuntu %s main\n' \
         "${key}" "$(lsb_release -cs)" | \
         sudo tee /etc/apt/sources.list.d/xtradeb-apps.list > /dev/null
-    sudo apt-get -qq update >> "$LOG" 2>&1
-
-    # Gate on the candidate actually coming from xtradeb. Without this an
-    # unreachable or unsigned PPA is not an error at all - it just means the
-    # only remaining candidate is the chromium-browser snap shim.
-    if ! apt-cache policy chromium 2>/dev/null | grep -q xtradeb; then
-        print_status "ERROR" "xtradeb PPA unusable - refusing to install, the fallback would be the snap."
+    # Refresh ONLY this source, and RETRY. Two reasons, both learned from a build
+    # that died here with an empty log while the PPA was demonstrably healthy:
+    #   - a single try makes a transient hiccup fatal to a 40-minute provisioning
+    #     run, since setup-sift.sh runs under `set -e`;
+    #   - the scoped update takes ~2s against ~1 minute for a full one, so
+    #     retrying is cheap. sourceparts=- and List-Cleanup=0 are what confine it
+    #     to our file without apt discarding every other source's lists.
+    # The output goes to the log at normal verbosity: -qq hid the one thing that
+    # would have explained the failure.
+    local attempt visible=0
+    for attempt in 1 2 3; do
+        sudo apt-get update >> "$LOG" 2>&1 \
+            -o Dir::Etc::sourcelist="sources.list.d/xtradeb-apps.list" \
+            -o Dir::Etc::sourceparts="-" \
+            -o APT::Get::List-Cleanup="0"
+        # Gate on the candidate actually coming from xtradeb. Without this an
+        # unreachable or unsigned PPA is not an error at all - it just means the
+        # only remaining candidate is the chromium-browser snap shim.
+        if apt-cache policy chromium 2>/dev/null | grep -q xtradeb; then
+            visible=1
+            break
+        fi
+        [[ ${attempt} -lt 3 ]] && {
+            print_status "INFO" "xtradeb candidate not visible (try ${attempt}/3), retrying."
+            sleep 5
+        }
+    done
+    if [[ ${visible} -eq 0 ]]; then
+        print_status "ERROR" "xtradeb PPA unusable after 3 tries - refusing to install, the fallback would be the snap. See $LOG."
         sudo rm -f /etc/apt/sources.list.d/xtradeb-apps.list "${key}"
         return 1
     fi
