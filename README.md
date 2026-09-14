@@ -25,14 +25,14 @@ cd ~/src/git/dfir-tools
 
 ### `make install-sift`
 
-- Updates Ubuntu and installs general packages (vim, tshark, curl, git, tmux, sqlite3, jq, hdparm, nvme-cli, flameshot, remmina, meld…)
+- Updates Ubuntu and installs general packages (vim, tshark, curl, git, tmux, sqlite3, jq…)
 - Installs `open-vm-tools-desktop` for VMware
 - Installs SIFT via `cast install teamdfir/sift-saltstack`
 - Installs Chromium (ppa:xtradeb/apps)
-- Installs desktop tools shipped as a `.deb` or their own apt repo: VSCodium, balenaEtcher, drawio, VeraCrypt
+- Installs desktop tools shipped as a `.deb` or their own apt repo: VSCodium, balenaEtcher, drawio, VeraCrypt, BinDiff
 - Installs CyberChef offline in `/opt/cyberchef`, with a `cyberchef` launcher and a desktop entry
 - Sets up Python virtualenvwrapper with isolated environments
-- Installs additional tools: chaosreader, FLOSS, capa, RecuperaBit, docker-explorer
+- Installs additional tools: chaosreader, FLOSS, capa, RecuperaBit, docker-explorer, extract-msg
 - Deploys SIFT aliases to `~/.sift_aliases`
 
 It ends by printing the manual steps left to do - among them `make dotfiles`, which the installer does **not** run for you.

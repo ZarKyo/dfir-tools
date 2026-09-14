@@ -73,6 +73,7 @@ update-drawio
 update-veracrypt
 update-cyberchef
 update-capa
+update-bindiff
 
 # Update python
 update-chaosreader
@@ -80,6 +81,7 @@ update-floss
 update-RecuperaBit
 update-volatility
 update-regipy
+update-extract-msg
 
 # Update docker
 update-docker-explorer

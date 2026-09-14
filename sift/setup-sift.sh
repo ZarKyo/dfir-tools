@@ -99,11 +99,13 @@ install-drawio
 install-veracrypt
 install-cyberchef
 install-capa
+install-bindiff
 
 # Install python
 install-didierstevenssuite
 install-srum-dump
 install-oletools
+install-extract-msg
 install-pcodedmp
 install-regipy
 install-RecuperaBit

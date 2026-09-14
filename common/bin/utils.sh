@@ -306,13 +306,19 @@ function install-general-tools() {
     sudo DEBIAN_FRONTEND=noninteractive apt -yqq install \
         ascii \
         build-essential \
+        colordiff \
         curl \
         dos2unix \
         exfat-fuse \
+        extlinux \
         eza \
         flameshot \
+        genisoimage \
         git \
         gnupg \
+        gparted \
+        guake \
+        guestmount \
         hdparm \
         htop \
         jq \
@@ -326,9 +332,12 @@ function install-general-tools() {
         p7zip \
         python3-dev \
         python3-virtualenv \
+        reiserfsprogs \
         remmina \
         remmina-plugin-rdp \
         remmina-plugin-vnc \
+        rpm \
+        rpm2cpio \
         screen \
         sharutils \
         sqlite3 \
@@ -338,6 +347,7 @@ function install-general-tools() {
         trash-cli \
         tree \
         tshark \
+        unshield \
         unzip \
         vim \
         vim-doc \
@@ -589,6 +599,22 @@ function update-capa() {
     install-capa
 }
 
+# https://github.com/google/bindiff - diff two disassembled binaries (patch
+# diffing, variant analysis), fed by BinExport exports from Ghidra, IDA or Binary
+# Ninja. The .deb bundles its own JRE, and the Ghidra extension ships inside it
+# (/opt/bindiff/extra/ghidra/BinExport), to be installed from Ghidra itself.
+# Its postinst enables a --global systemd user unit, bindiff-plugins.service,
+# that sets up the per-user plugin links at login - which is what reaches a user
+# created after this runs.
+function install-bindiff() {
+    print_status "INFO" "install-bindiff"
+    install-github-deb google/bindiff bindiff '^bindiff_.*_amd64\.deb$'
+}
+
+function update-bindiff() {
+    update-github-deb google/bindiff bindiff '^bindiff_.*_amd64\.deb$'
+}
+
 # https://github.com/google/docker-explorer - offline analysis of Docker
 # containers and images found in a disk image.
 #
@@ -751,10 +777,10 @@ function install-chromium() {
     # output goes to the log at normal verbosity. sourceparts=- and List-Cleanup=0
     # are what confine the run to our file without apt discarding every other
     # source's lists.
-    sudo apt-get update >> "$LOG" 2>&1 \
+    sudo apt-get update \
         -o Dir::Etc::sourcelist="sources.list.d/xtradeb-apps.list" \
         -o Dir::Etc::sourceparts="-" \
-        -o APT::Get::List-Cleanup="0"
+        -o APT::Get::List-Cleanup="0" 2>&1 | tee -a "$LOG" > /dev/null
 
     # Gate on the candidate actually coming from xtradeb. Without this an
     # unreachable or unsigned PPA is not an error at all - it just means the only
@@ -775,7 +801,7 @@ function install-chromium() {
         sudo rm -f /etc/apt/sources.list.d/xtradeb-apps.list "${key}"
         return 1
     fi
-    sudo DEBIAN_FRONTEND=noninteractive apt-get -yqq install chromium >> "$LOG" 2>&1
+    sudo DEBIAN_FRONTEND=noninteractive apt-get -yqq install chromium 2>&1 | tee -a "$LOG" > /dev/null
 
     # Belt and braces: a real deb, and no snapd dragged back in behind it.
     if ! dpkg --status chromium > /dev/null 2>&1; then
@@ -1095,6 +1121,36 @@ function update-oletools() {
         pip install --upgrade pip >> "$LOG" 2>&1
         pip install --upgrade oletools >> "$LOG" 2>&1
         print_status "INFO" "Updated oletools."
+    fi
+}
+
+# https://github.com/TeamMsgExtractor/msg-extractor - Outlook .msg files, the
+# usual shape of a reported phishing mail: headers, body and attachments out to
+# disk. A venv reached with `workon extract-msg`, and deliberately no
+# /usr/local/bin wrapper: the REMnux addon puts its own `extract_msg` on PATH on
+# a DFIR machine, and a wrapper here would shadow it.
+function install-extract-msg() {
+    print_status "INFO" "install-extract-msg"
+    if [[ ! -d "${WORKON_HOME}"/extract-msg ]]; then
+        _venv mkvirtualenv extract-msg
+        {
+            pip install --upgrade pip
+            pip install extract-msg
+        } >> "$LOG" 2>&1
+        _venv deactivate
+        print_status "INFO" "Installed extract-msg."
+    fi
+}
+
+function update-extract-msg() {
+    if [[ -d "${WORKON_HOME}"/extract-msg ]]; then
+        _venv workon extract-msg
+        {
+            pip install --upgrade pip
+            pip install --upgrade extract-msg
+        } >> "$LOG" 2>&1
+        _venv deactivate
+        print_status "INFO" "Updated extract-msg."
     fi
 }
 
