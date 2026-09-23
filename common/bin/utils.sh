@@ -318,7 +318,6 @@ function install-general-tools() {
         gnupg \
         gparted \
         guake \
-        guestmount \
         hdparm \
         htop \
         jq \
