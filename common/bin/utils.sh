@@ -239,15 +239,17 @@ function create-common-directories() {
     setup-shared-dirs
 
     local mnt_dirs=(
-        aff bde e01 evidence1 ewf ewf-mount1 ewf-mount2
-        ext ext4 hgfs iscsi
-        linux-mount1 linux-mount2 linux-mount3
-        linux-mount4 linux-mount5 linux-mount6
-        linux-mount7 linux-mount8 linux-mount9
-        windows-mount shadow-mount usb vss
-        windows-mount1 windows-mount2 windows-mount3
-        windows-mount4 windows-mount5 windows-mount6
-        windows-mount7 windows-mount8 windows-mount9
+        aff bde e01 
+        evidence evidence1 
+        ewf ewf_mount ewf_mount1 ewf_mount2
+        ext ext4 hgfs iscsi linux_mount
+        linux_mount1 linux_mount2 linux_mount3
+        linux_mount4 linux_mount5 linux_mount6
+        linux_mount7 linux_mount8 linux_mount9
+        windows_mount shadow_mount usb vss
+        windows_mount1 windows_mount2 windows_mount3
+        windows_mount4 windows_mount5 windows_mount6
+        windows_mount7 windows_mount8 windows_mount9
         xfs
     )
     for dir in "${mnt_dirs[@]}"; do
