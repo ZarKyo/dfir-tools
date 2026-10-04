@@ -89,6 +89,7 @@ install-remnux-docs
 cp "${SCRIPT_DIR}/.remnux_aliases" ~/.remnux_aliases
 
 CONF_FILE="$HOME/.config/.manual_conf"
+mkdir -p "$(dirname "$CONF_FILE")"
 
 # Function to display and save a message
 log_manual() {
@@ -105,10 +106,6 @@ if [[ ! -e "$CONF_FILE" ]]; then
     log_manual "3. -> Diagnostics -> Turn off error reports."
     log_manual "4. Run 'make dotfiles' in ~/src/git/dfir-tools for .bashrc etc."
     log_manual "##################################################################"
-
-    # Create the config file to avoid repeating this block
-    mkdir -p "$(dirname "$CONF_FILE")"
-    touch "$CONF_FILE"
 else
     print_status "SUCCESS" "Update with setup-remnux.sh done."
     echo "Update with setup-remnux.sh done." >> "$CONF_FILE"
