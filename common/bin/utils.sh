@@ -1240,6 +1240,7 @@ function update-radare2() {
 
 function install-sift() {
     if [[ ! -e ~/.config/.sift ]]; then
+        local ARCH cast_url=""
         print_status "INFO" "Start installation of SIFT."
         cd /tmp || true
         {
@@ -1249,11 +1250,18 @@ function install-sift() {
             else
                 ARCH="arm64"
             fi
-            wget "$(curl -s https://api.github.com/repos/ekristen/cast/releases/latest | jq . |
-                grep 'browser_' | grep deb | grep -v deb.sig | grep "$ARCH" | cut -d\" -f4 | head -1)"
-            wget "$(curl -s https://api.github.com/repos/ekristen/cast/releases/latest | jq . |
-                grep 'browser_' | grep deb | grep -v deb.sig | grep "$ARCH" | cut -d\" -f4 | tail -1)"
+            rm -f cast*.deb
+            # Newest release that actually ships a .deb, not releases/latest:
+            # v1.0.37 and v1.0.38 were published with no assets at all.
+            cast_url="$(curl -s 'https://api.github.com/repos/ekristen/cast/releases?per_page=20' |
+                jq -r --arg arch "$ARCH" '[.[] | select((.draft or .prerelease) | not) | .assets[]
+                    | select(.name | test("-linux-" + $arch + "[.]deb$")) | .browser_download_url][0] // empty')"
+            if [[ -n "$cast_url" ]]; then wget "$cast_url"; fi
         } >> "$LOG" 2>&1
+        if [[ -z "$cast_url" ]]; then
+            print_status "ERROR" "No cast .deb for ${ARCH} in the last 20 releases: SIFT NOT installed."
+            return 1
+        fi
         # Does not validate gpg at the moment due to problems downloading keys in some networks...
         sudo dpkg -i cast*.deb
         sudo systemctl stop ssh.service
