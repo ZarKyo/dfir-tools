@@ -119,7 +119,9 @@ else
   PS1="\[\033[1;36m\]\u@\h\[\033[0m\]: \[\033[32m\]\w\[\033[0m\]\n\\$ ";
 fi
 
-set -o noclobber
+# Refuse to let '>' overwrite an existing file, so a mistyped redirect cannot
+# destroy evidence or an earlier tool's output. Use '>|' to overwrite on purpose.
+# set -o noclobber
 
 # Add convert functions
 function hex-to-dec(){
